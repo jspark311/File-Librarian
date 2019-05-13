@@ -30,3 +30,10 @@
 *.exe
 *.out
 *.app
+librarian
+
+# File manager artificats
+.directory
+
+# Private information
+db.conf
