@@ -72,36 +72,38 @@ void worker_thread_db_write() {
       if (cur->dirty()) {
         LinkedList<ORMFileData*> objs_in_query;
         StringBuilder insert_query;
-        //cur->generateInsertQuery(&insert_query, nullptr);
-cur->generateInsertQuery(&insert_query);
-        //while ((nullptr != cur) && (insert_query.length() < MAX_QUERY_LENGTH)) {
-        //  objs_in_query.insertAtHead(cur);
-        //  if (objs_in_query.size() > 1) {
-        //    insert_query.concat(",\n");
-        //  }
-        //  cur->generateInsertQuery(nullptr, &insert_query);
-        //  objs_in_query.insertAtHead(cur);
-        //  cur = _databi_thread_queues.dequeue();
-        //}
-        //insert_query.concat(";");
+        cur->generateInsertQuery(&insert_query, nullptr);
+
+        while ((nullptr != cur) && (insert_query.length() < MAX_QUERY_LENGTH)) {
+          objs_in_query.insertAtHead(cur);
+          if (objs_in_query.size() > 1) {
+            insert_query.concat(",\n");
+          }
+          cur->generateInsertQuery(nullptr, &insert_query);
+          //printf("insert_query size = %d       _databi_thread_queues size = %d        objs_in_query size = %d\n", insert_query.length(), _databi_thread_queues.size(), objs_in_query.size());
+          cur = _databi_thread_queues.dequeue();
+        }
+        insert_query.concat(";");
         //printf("%s\n", insert_query.string());
-        //if (objs_in_query.size() > 0) {
+        if (objs_in_query.size() > 0) {
           if (1 == _db->r_query(insert_query.string())) {
-        //    while (objs_in_query.size() > 0) {
-        //      cur = objs_in_query.remove();
-        //      if (cur) {
+            while (objs_in_query.size() > 0) {
+              cur = objs_in_query.remove();
+              if (cur) {
                 cur->markClean();
+                //printf("DELETE from success case\n");
                 delete cur;
-        //      }
-        //    }
+              }
+            }
           }
           else {
             fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to save record to database.");
             printf("%s\n", (char*) insert_query.string());
           }
-        //}
+        }
       }
       else {
+        //printf("DELETE from else case\n");
         delete cur;
       }
     }
