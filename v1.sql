@@ -1,9 +1,6 @@
 CREATE DATABASE  IF NOT EXISTS `datahive_versions` /*!40100 DEFAULT CHARACTER SET utf8 */;
 USE `datahive_versions`;
 
---
--- Table structure for table `db_version`
---
 
 DROP TABLE IF EXISTS `db_version`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -22,9 +19,6 @@ CREATE TABLE `db_version` (
 INSERT INTO `db_version` (`id`, `version`, `datetime_created`, `log`) VALUES
 (1, 1, '2018-10-11 05:40:19', 'Initial version.');
 
---
--- Table structure for table `file_meta`
---
 
 DROP TABLE IF EXISTS `file_meta`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -49,9 +43,6 @@ CREATE TABLE `file_meta` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 CHECKSUM=1;
 
---
--- Table structure for table `file_meta`
---
 
 DROP TABLE IF EXISTS `datahive_version`;
 /*!40101 SET character_set_client = utf8 */;
@@ -64,6 +55,19 @@ CREATE TABLE `datahive_version` (
   `count_directories` int(12) unsigned NOT NULL,
   `rel_path` mediumblob NOT NULL COMMENT 'The relative path of the root of the datahive.',
   `notes` blob NOT NULL COMMENT 'Optional notes surrounding this catalog.',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 CHECKSUM=1;
+
+
+DROP TABLE IF EXISTS `log_table`;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `log_table` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_dh_snapshot` int(10) unsigned DEFAULT NULL COMMENT 'The ID of the snapshot this log pertains to.',
+  `datetime_created` datetime NOT NULL DEFAULT current_timestamp(),
+  `severity` tinyint(1) NOT NULL,
+  `source` varchar(64) NOT NULL COMMENT 'The class that generated the log.',
+  `body` TEXT NOT NULL COMMENT 'Log content.',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 CHECKSUM=1;
 

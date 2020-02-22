@@ -36,9 +36,9 @@
 #include "MySQLConnector/DBAbstractions/ORM.h"
 #include "ConfigManager/ConfigManager.h"
 
-#include "DataStructures/LightLinkedList.h"
-#include "DataStructures/PriorityQueue.h"
-#include "DataStructures/StringBuilder.h"
+#include "LightLinkedList.h"
+#include "PriorityQueue.h"
+#include "StringBuilder.h"
 
 using namespace std;
 
@@ -206,18 +206,9 @@ long newCatalogPath(char* root) {
   if (nullptr != root_catalog) {
     cleanupCatalog();
   }
-  root_catalog = new ORMDatahiveVersion(23, root);
+  root_catalog = new ORMDatahiveVersion(root);
   if (root_catalog) {
-    LibrarianDB* _db = LibrarianDB::getInstance();
-    StringBuilder insert_query;
-    root_catalog->generateInsertQuery(&insert_query);
-    if (1 == _db->r_query(insert_query.string())) {
-      root_catalog->markClean();
-    }
-    else {
-      fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to save record to database.");
-      printf("%s\n", (char*) insert_query.string());
-    }
+    root_catalog->commit();
     StringBuilder tmp("Created new catalog:\n");
     root_catalog->printDebug(&tmp);
     printf("%s\n", tmp.string());

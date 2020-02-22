@@ -2,7 +2,7 @@
 #define MYSQL_CONNECTOR_H 1
 
 #include <mysql/mysql.h>
-#include "DataStructures/StringBuilder.h"
+#include "StringBuilder.h"
 
 
 // This is the default path to the DB we are likely to use.

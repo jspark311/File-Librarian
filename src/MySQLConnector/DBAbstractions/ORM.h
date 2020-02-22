@@ -10,11 +10,6 @@
 
 class ORMFileData;
 
-/*
-* A class that represents things that need to be done.
-*/
-class WorkItem {
-};
 
 
 /*
@@ -63,6 +58,7 @@ class ORM {
 
 
   protected:
+    long _db_id = -1;
 
   private:
 };
@@ -72,8 +68,27 @@ class ORM {
 /*
 *
 */
+class ORMLog : public ORM {
+  public:
+    ORMLog(LogLevel, char*, char*);
+    virtual ~ORMLog();
+
+    void generateInsertQuery(StringBuilder*);
+    void generateInsertQuery(StringBuilder*, StringBuilder*);
+
+
+  private:
+    const uint32_t _dh_ver;
+};
+
+
+
+/*
+*
+*/
 class ORMDatahiveVersion : public ORM {
   public:
+    ORMDatahiveVersion(char*);
     ORMDatahiveVersion(uint32_t, char*);
     virtual ~ORMDatahiveVersion();
 
@@ -95,7 +110,7 @@ class ORMDatahiveVersion : public ORM {
 
 
   private:
-    const uint32_t _dh_ver;
+    int32_t        _dh_ver    = -1;
     char*          _tag       = nullptr;
     char*          _path      = nullptr;
     char*          _notes     = nullptr;

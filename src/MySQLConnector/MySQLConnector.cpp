@@ -2,7 +2,7 @@
 #include <mysql/errmsg.h>
 #include <mysql/mysql.h>
 #include "MySQLConnector.h"
-#include "../DataStructures/StringBuilder.h"
+#include "StringBuilder.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>

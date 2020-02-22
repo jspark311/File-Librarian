@@ -22,6 +22,21 @@ using namespace std;
 
 
 
+ORMDatahiveVersion::ORMDatahiveVersion(char* p) {
+  _db = LibrarianDB::getInstance();
+  char* trimmed = trim(p);
+  size_t path_len = strlen(trimmed);
+  if (path_len) {
+    // TODO: We pool any quantities we can know at this point.
+    _path = (char*) malloc(path_len+1);
+    if (_path) {
+      memcpy(_path, trimmed, path_len);
+      *(_path + path_len) = '\0';
+    }
+  }
+}
+
+
 ORMDatahiveVersion::ORMDatahiveVersion(uint32_t dv, char* p) : _dh_ver(dv) {
   _db = LibrarianDB::getInstance();
   char* trimmed = trim(p);
@@ -200,6 +215,7 @@ long ORMDatahiveVersion::commit() {
     StringBuilder insert_query;
     generateInsertQuery(&insert_query);
     if (1 == _db->r_query(insert_query.string())) {
+      _dh_ver = _db->last_insert_id();
       _saved_to_db = true;
     }
     else {

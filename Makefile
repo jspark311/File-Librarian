@@ -3,14 +3,14 @@
 
 CC		= gcc
 CFLAGS	= -Wall
-CXXFLAGS = -I./src -D__MANUVR_LINUX
+CXXFLAGS = -I./src -I./lib/CppPotpourri/src -D__MANUVR_LINUX
 LIBS	= -L$(OUTPUT_PATH) -L$(BUILD_ROOT)/lib -lstdc++ -lcrypto -lm $(shell mysql_config --libs)
 
 export BUILD_ROOT    = $(shell pwd)
 export OUTPUT_PATH   = $(BUILD_ROOT)/build/
 
 
-SRCS    = src/librarian.cpp src/MySQLConnector/*.cpp src/DataStructures/*.cpp
+SRCS    = src/librarian.cpp src/MySQLConnector/*.cpp lib/CppPotpourri/src/*.cpp
 SRCS   += src/ConfigManager/*.cpp src/MySQLConnector/DBAbstractions/*.cpp
 
 default:	librarian
