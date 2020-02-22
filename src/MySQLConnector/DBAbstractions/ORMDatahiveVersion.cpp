@@ -10,9 +10,9 @@
 #include <unistd.h>
 
 #include "ORM.h"
-#include "DataStructures/LightLinkedList.h"
-#include "DataStructures/PriorityQueue.h"
-#include "DataStructures/StringBuilder.h"
+#include "LightLinkedList.h"
+#include "PriorityQueue.h"
+#include "StringBuilder.h"
 
 extern char* trim(char *str);
 extern char* printBinStringToBuffer(unsigned char *str, int len, char *buffer);

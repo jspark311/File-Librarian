@@ -1,7 +1,7 @@
 #include "MySQLConnector/MySQLConnector.h"
-#include "DataStructures/LightLinkedList.h"
-#include "DataStructures/PriorityQueue.h"
-#include "DataStructures/StringBuilder.h"
+#include "LightLinkedList.h"
+#include "PriorityQueue.h"
+#include "StringBuilder.h"
 
 
 #ifndef __ORM_CLASS_H__

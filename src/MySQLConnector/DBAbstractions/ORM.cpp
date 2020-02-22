@@ -17,9 +17,9 @@
 #include <chrono>
 
 #include "ORM.h"
-#include "DataStructures/LightLinkedList.h"
-#include "DataStructures/PriorityQueue.h"
-#include "DataStructures/StringBuilder.h"
+#include "LightLinkedList.h"
+#include "PriorityQueue.h"
+#include "StringBuilder.h"
 
 extern char* trim(char *str);
 extern int PROC_SHA256_MSG(unsigned char *msg, long msg_len, unsigned char *md, unsigned int md_len);
