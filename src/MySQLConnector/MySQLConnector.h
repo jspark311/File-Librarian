@@ -8,6 +8,9 @@
 // This is the default path to the DB we are likely to use.
 #define   DEFAULT_CONF_FILE   "db.conf"
 
+typedef uint8_t LogLevel;
+
+
 
 class MySQLConnector {
     public:

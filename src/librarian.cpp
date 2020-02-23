@@ -39,26 +39,32 @@
 #include "LightLinkedList.h"
 #include "PriorityQueue.h"
 #include "StringBuilder.h"
+#include "CppPotpourri.h"
+#include "ParsingConsole.h"
+
+#define FP_VERSION         "0.0.2"    // Program version.
+#define U_INPUT_BUFF_SIZE      512    // The maximum size of user input.
+
+
+/*
+* Not provided elsewhere on a linux platform.
+*/
+uint32_t micros() {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return (ts.tv_sec * 1000000 + ts.tv_nsec / 1000L);
+}
+
+
 
 using namespace std;
 
 
 
-#define FP_VERSION "0.0.1"
-
-#ifndef max
-    #define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
-#endif
-
-#ifndef min
-    #define min( a, b ) ( ((a) < (b)) ? (a) : (b) )
-#endif
-
-
 const int BUFFER_LEN       = 8192;      // This is the maximum size of any given packet we can handle.
 const int INTERRUPT_PERIOD = 1;        // How many seconds between SIGALRM interrupts?
 
-int continue_listening  = 1;
+int continue_running  = 1;
 int parent_pid          = 0;            // The PID of the root process (always).
 int pd_pid;                             // This is the PID for the dialplan thread.
 
@@ -69,9 +75,16 @@ ORMDatahiveVersion* root_catalog = nullptr;
 char *program_name;
 int maximum_field_print = 65;         // The maximum number of bytes we will print for sessions. Has no bearing on file output.
 
-// The maximum size of user input.
-#define U_INPUT_BUFF_SIZE 128
-
+/* Console junk... */
+ParsingConsole console(U_INPUT_BUFF_SIZE);
+static const TCode arg_list_0[]       = {TCode::NONE};
+static const TCode arg_list_1_str[]   = {TCode::STR,   TCode::NONE};
+static const TCode arg_list_1_uint[]  = {TCode::UINT,  TCode::NONE};
+static const TCode arg_list_1_float[] = {TCode::FLOAT, TCode::NONE};
+static const TCode arg_list_2_uint[]  = {TCode::UINT,  TCode::UINT,  TCode::NONE};
+static const TCode arg_list_3_uint[]  = {TCode::UINT,  TCode::UINT,  TCode::UINT,  TCode::NONE};
+static const TCode arg_list_4_uuff[]  = {TCode::UINT,  TCode::UINT,  TCode::FLOAT, TCode::FLOAT, TCode::NONE};
+static const TCode arg_list_4_float[] = {TCode::FLOAT, TCode::FLOAT, TCode::FLOAT, TCode::FLOAT, TCode::NONE};
 
 
 /****************************************************************************************************
@@ -460,9 +473,98 @@ int initSigHandlers() {
     }
     if (signal(SIGCHLD, SIG_IGN) == SIG_ERR) {
         fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to bind SIGCHLD to the signal system. Failing...");
-        continue_listening  = 0;
+        continue_running = 0;
     }
     return return_value;
+}
+
+
+
+/*******************************************************************************
+* Console callbacks
+*******************************************************************************/
+
+int callback_help(StringBuilder* text_return, StringBuilder* args) {
+  if (0 < args->count()) {
+    console.printHelp(text_return, args->position_trimmed(0));
+  }
+  else {
+    console.printHelp(text_return);
+  }
+  return 0;
+}
+
+int callback_print_history(StringBuilder* text_return, StringBuilder* args) {
+  console.printHistory(text_return);
+  return 0;
+}
+
+int callback_program_quit(StringBuilder* text_return, StringBuilder* args) {
+  continue_running = 0;
+  return 0;
+}
+
+int callback_catalog_info(StringBuilder* text_return, StringBuilder* args) {
+  printCatalogInfo();
+  return 0;
+}
+
+int callback_start_scan(StringBuilder* text_return, StringBuilder* args) {
+  startCatalogScan(); // Accumulate metadata.
+  return 0;
+}
+
+int callback_unload(StringBuilder* text_return, StringBuilder* args) {
+  cleanupCatalog();   // Unload metadata.
+  return 0;
+}
+
+int callback_max_print_width(StringBuilder* text_return, StringBuilder* args) {
+  if (0 < args->count()) {
+    maximum_field_print = args->position_as_int(0);
+    if (maximum_field_print <= 0) {
+      text_return->concatf("You tried to set the output width as 0. This is a bad idea. Setting the value to 64 instead.\n");
+      maximum_field_print = 64;
+    }
+  }
+  else {
+    text_return->concatf("max-width is presently set to %d.\n", maximum_field_print);
+  }
+  return 0;
+}
+
+
+int callback_new_catalog(StringBuilder* text_return, StringBuilder* args) {
+  if (0 < args->count()) {
+    newCatalogPath(args->position(0));
+  }
+  else {
+    text_return->concat("Catalog needs a path to take as a root.\n");
+  }
+  return 0;
+}
+
+
+int callback_set_tag(StringBuilder* text_return, StringBuilder* args) {
+  if (nullptr != root_catalog) {
+    root_catalog->setTag(args);
+  }
+  else {
+    text_return->concat("No catalog.\n");
+  }
+  return 0;
+}
+
+
+int callback_set_notes(StringBuilder* text_return, StringBuilder* args) {
+  if (nullptr != root_catalog) {
+    args->implode(" ");
+    root_catalog->setNotes(args);
+  }
+  else {
+    text_return->concat("No catalog.\n");
+  }
+  return 0;
 }
 
 
@@ -474,7 +576,7 @@ int initSigHandlers() {
 int main(int argc, char *argv[]) {
   char *db_conf_filename  = NULL;     // Where should we look for our DB parameters?
   program_name            = argv[0];  // Our name.
-  int running  = 1;
+  StringBuilder output;
 
   srand(time(NULL));          // Seed the PRNG...
 
@@ -571,72 +673,42 @@ int main(int argc, char *argv[]) {
     ///* INTERNAL INTEGRITY-CHECKS */
 
   char *input_text  = (char*) alloca(U_INPUT_BUFF_SIZE);  // Buffer to hold user-input.
-  char *pos0;            // Temporary pointers for manipulating user-input.
-  StringBuilder parsed;
 
-  // The main loop. Run forever.
-  while (running) {
+  console.defineCommand("help",        '?', arg_list_1_str, "Prints help to console.", "", 0, callback_help);
+  console.defineCommand("history",     arg_list_0, "Print command history.", "", 0, callback_print_history);
+  console.defineCommand("info",        'i', arg_list_1_str, "Print the catalog's vital stats.", "", 0, callback_catalog_info);
+  console.defineCommand("scan",        arg_list_1_str, "Read the filesystem to fill out the catalog.", "", 0, callback_start_scan);
+  console.defineCommand("unload",      arg_list_1_str, "Discard the current catalog.", "", 0, callback_unload);
+  console.defineCommand("max-print",   arg_list_1_str, "Sets the maximum print width.", "", 0, callback_max_print_width);
+  console.defineCommand("catalog",     arg_list_1_str, "Create a new catalog at the given path.", "", 1, callback_new_catalog);
+  console.defineCommand("tag",         arg_list_1_str, "Set a tag for the catalog.", "", 1, callback_set_tag);
+  console.defineCommand("notes",       arg_list_1_str, "Set the notes on the catalog.", "", 1, callback_set_notes);
+  console.defineCommand("quit",        'Q', arg_list_0, "Commit sudoku.", "", 0, callback_program_quit);
+  console.setTXTerminator(LineTerm::CRLF);
+  console.setRXTerminator(LineTerm::CR);
+  console.localEcho(false);
+  console.init();
+
+
+  // The main loop. Run until told to stop.
+  while (continue_running) {
     printf("%c[36m%s> %c[39m", 0x1B, argv[0], 0x1B);
     bzero(input_text, U_INPUT_BUFF_SIZE);
     if (fgets(input_text, U_INPUT_BUFF_SIZE, stdin) != NULL) {
-      parsed.concat(input_text);
-      parsed.split(" ");
-
-      pos0 = parsed.position(0);
-
-      // Begin the cases...
-      if (strlen(pos0) <= 1)                printCatalogInfo(); // User entered nothing.
-      else if (strcasestr(pos0, "QUIT"))    running = 0;        // Exit
-      else if (strcasestr(pos0, "HELP"))    printHelp();        // Show help.
-      else if (strcasestr(pos0, "SCAN"))    startCatalogScan(); // Accumulate metadata.
-      else if (strcasestr(pos0, "UNLOAD"))  cleanupCatalog();   // Unload metadata.
-
-      else if (strcasestr(pos0, "MAX-WIDTH"))  {
-        if (parsed.count() > 1) {
-          maximum_field_print = parsed.position_as_int(1);
-          if (maximum_field_print <= 0) {
-            printf("You tried to set the output width as 0. This is a bad idea. Setting the value to 64 instead.\n");
-            maximum_field_print = 64;
-          }
-        }
-        else {
-          printf("max-width is presently set to %d.\n", maximum_field_print);
-        }
+      switch (console.feed(input_text)) {
+        case -1:   // console buffered the data, but took no other action.
+        default:
+          break;
+        case 0:   // A full line came in.
+          break;
+        case 1:   // A callback was called.
+          break;
       }
-      else if (strcasestr(pos0, "CATALOG"))  {
-        if (parsed.count() > 1) {
-          newCatalogPath(parsed.position(1));
-        }
-        else {
-          printf("Catalog needs a path to take as a root.\n");
-        }
-      }
-      else if (strcasestr(pos0, "TAG"))  {
-        if ((nullptr != root_catalog) && (parsed.count() > 1)) {
-          parsed.drop_position(0);  // Throw away the command.
-          root_catalog->setTag(&parsed);
-        }
-        else {
-          printf("No catalog, and/or no notes.\n");
-        }
-      }
-      else if (strcasestr(pos0, "NOTES"))  {
-        if ((nullptr != root_catalog) && (parsed.count() > 1)) {
-          parsed.drop_position(0);  // Throw away the command.
-          parsed.implode(" ");
-          root_catalog->setNotes(&parsed);
-        }
-        else {
-          printf("No catalog, and/or no notes.\n");
-        }
-      }
-      else {  // Any other input, we will print the help.
-        printHelp();
-      }
-      parsed.clear();
     }
-    else {
-      printHelp();
+    console.fetchLog(&output);
+    if (output.length() > 0) {
+      printf("%s", output.string());
+      output.clear();
     }
   }
 

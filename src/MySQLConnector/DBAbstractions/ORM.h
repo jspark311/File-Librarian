@@ -9,7 +9,7 @@
 
 
 class ORMFileData;
-
+class WorkItem;
 
 
 /*
