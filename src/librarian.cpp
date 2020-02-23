@@ -407,22 +407,24 @@ void sig_handler(int signo) {
     switch (signo) {
         case SIGINT:
           fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGINT signal. Closing up shop...");
-          break;
+          exit(1);
         case SIGKILL:
           fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGKILL signal. Something bad must have happened. Exiting hard....");
           exit(1);
-          break;
         case SIGTERM:
           fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGTERM signal. Closing up shop...");
           break;
         case SIGQUIT:
           fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGQUIT signal. Closing up shop...");
+          continue_running = 0;
           break;
         case SIGHUP:
           fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGHUP signal. Closing up shop...");
+          continue_running = 0;
           break;
         case SIGSTOP:
            fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGSTOP signal. Closing up shop...");
+           continue_running = 0;
            break;
         case SIGUSR1:      // Cause a configuration reload.
           fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "USR1 received.");
@@ -685,7 +687,7 @@ int main(int argc, char *argv[]) {
   console.defineCommand("notes",       arg_list_1_str, "Set the notes on the catalog.", "", 1, callback_set_notes);
   console.defineCommand("quit",        'Q', arg_list_0, "Commit sudoku.", "", 0, callback_program_quit);
   console.setTXTerminator(LineTerm::CRLF);
-  console.setRXTerminator(LineTerm::CR);
+  console.setRXTerminator(LineTerm::LF);
   console.localEcho(false);
   console.init();
 
