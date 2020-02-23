@@ -368,26 +368,9 @@ void printCatalogInfo() {
 }
 
 
-/*
-*  Prints a list of valid commands.
-*/
-void printHelp() {
-  printf("==< HELP >=========================================================================================\n");
-  printf("%s    Build date:  %s %s\n", program_name, __DATE__, __TIME__);
-  printf("'catalog'     Create a new catalog at the given path.\n");
-  printf("'tag'         Set a tag for the catalog.\n");
-  printf("'notes'       Set the notes on the catalog.\n");
-  printf("'scan'        Read the filesystem to fill out the catalog.\n");
-  printf("'unload'      Discard the current catalog.\n");
-  printf("'help'        This.\n");
-  printf("'quit'        Bail? Bail.\n");
-  printf("==< HELP >=============================================================================< v%5s >==\n", FP_VERSION);
-  printf("\n\n");
-}
-
-
 /**
-* The help function. We use printf() because we are certain there is a user at the other end of STDOUT.
+* The help function for invocation. We use printf() because we are
+*   certain there is a user at the other end of STDOUT.
 */
 void printUsage() {
   printf("-v  --version       Print the version and exit.\n");
@@ -487,6 +470,8 @@ int initSigHandlers() {
 *******************************************************************************/
 
 int callback_help(StringBuilder* text_return, StringBuilder* args) {
+  text_return->concat("==< HELP >=========================================================================================\n");
+  text_return->concatf("%s %s   Build date:  %s %s\n", program_name, FP_VERSION, __DATE__, __TIME__);
   if (0 < args->count()) {
     console.printHelp(text_return, args->position_trimmed(0));
   }
