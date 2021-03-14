@@ -45,18 +45,6 @@
 #define FP_VERSION         "0.0.2"    // Program version.
 #define U_INPUT_BUFF_SIZE      512    // The maximum size of user input.
 
-
-/*
-* Not provided elsewhere on a linux platform.
-*/
-uint32_t micros() {
-  struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-  return (ts.tv_sec * 1000000 + ts.tv_nsec / 1000L);
-}
-
-
-
 using namespace std;
 
 
@@ -77,14 +65,6 @@ int maximum_field_print = 65;         // The maximum number of bytes we will pri
 
 /* Console junk... */
 ParsingConsole console(U_INPUT_BUFF_SIZE);
-static const TCode arg_list_0[]       = {TCode::NONE};
-static const TCode arg_list_1_str[]   = {TCode::STR,   TCode::NONE};
-static const TCode arg_list_1_uint[]  = {TCode::UINT,  TCode::NONE};
-static const TCode arg_list_1_float[] = {TCode::FLOAT, TCode::NONE};
-static const TCode arg_list_2_uint[]  = {TCode::UINT,  TCode::UINT,  TCode::NONE};
-static const TCode arg_list_3_uint[]  = {TCode::UINT,  TCode::UINT,  TCode::UINT,  TCode::NONE};
-static const TCode arg_list_4_uuff[]  = {TCode::UINT,  TCode::UINT,  TCode::FLOAT, TCode::FLOAT, TCode::NONE};
-static const TCode arg_list_4_float[] = {TCode::FLOAT, TCode::FLOAT, TCode::FLOAT, TCode::FLOAT, TCode::NONE};
 
 
 /****************************************************************************************************
@@ -387,38 +367,38 @@ void printUsage() {
 * Signal catching code.                                                                             *
 ****************************************************************************************************/
 void sig_handler(int signo) {
-    switch (signo) {
-        case SIGINT:
-          fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGINT signal. Closing up shop...");
-          exit(1);
-        case SIGKILL:
-          fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGKILL signal. Something bad must have happened. Exiting hard....");
-          exit(1);
-        case SIGTERM:
-          fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGTERM signal. Closing up shop...");
-          break;
-        case SIGQUIT:
-          fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGQUIT signal. Closing up shop...");
-          continue_running = 0;
-          break;
-        case SIGHUP:
-          fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGHUP signal. Closing up shop...");
-          continue_running = 0;
-          break;
-        case SIGSTOP:
-           fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGSTOP signal. Closing up shop...");
-           continue_running = 0;
-           break;
-        case SIGUSR1:      // Cause a configuration reload.
-          fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "USR1 received.");
-          break;
-        case SIGUSR2:    // Cause a database reload.
-           fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "USR2 received.");
-          break;
-        default:
-          fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Unhandled signal: %d", signo);
-          break;
-    }
+  switch (signo) {
+    case SIGINT:
+      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGINT signal.\n");
+      exit(1);
+    case SIGKILL:
+      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGKILL signal. Something bad must have happened.\n");
+      exit(1);
+    case SIGTERM:
+      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGTERM signal.\n");
+      break;
+    case SIGQUIT:
+      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGQUIT signal.\n");
+      continue_running = 0;
+      break;
+    case SIGHUP:
+      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGHUP signal.\n");
+      continue_running = 0;
+      break;
+    case SIGSTOP:
+      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGSTOP signal.\n");
+      continue_running = 0;
+      break;
+    case SIGUSR1:      // Cause a configuration reload.
+      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "USR1 received.\n");
+      break;
+    case SIGUSR2:    // Cause a database reload.
+      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "USR2 received.\n");
+      break;
+    default:
+      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Unhandled signal: %d\n", signo);
+      break;
+  }
 }
 
 
@@ -661,16 +641,16 @@ int main(int argc, char *argv[]) {
 
   char *input_text  = (char*) alloca(U_INPUT_BUFF_SIZE);  // Buffer to hold user-input.
 
-  console.defineCommand("help",        '?', arg_list_1_str, "Prints help to console.", "", 0, callback_help);
-  console.defineCommand("history",     arg_list_0, "Print command history.", "", 0, callback_print_history);
-  console.defineCommand("info",        'i', arg_list_1_str, "Print the catalog's vital stats.", "", 0, callback_catalog_info);
-  console.defineCommand("scan",        arg_list_1_str, "Read the filesystem to fill out the catalog.", "", 0, callback_start_scan);
-  console.defineCommand("unload",      arg_list_1_str, "Discard the current catalog.", "", 0, callback_unload);
-  console.defineCommand("max-print",   arg_list_1_str, "Sets the maximum print width.", "", 0, callback_max_print_width);
-  console.defineCommand("catalog",     arg_list_1_str, "Create a new catalog at the given path.", "", 1, callback_new_catalog);
-  console.defineCommand("tag",         arg_list_1_str, "Set a tag for the catalog.", "", 1, callback_set_tag);
-  console.defineCommand("notes",       arg_list_1_str, "Set the notes on the catalog.", "", 1, callback_set_notes);
-  console.defineCommand("quit",        'Q', arg_list_0, "Commit sudoku.", "", 0, callback_program_quit);
+  console.defineCommand("help",        '?', ParsingConsole::tcodes_str_1, "Prints help to console.", "", 0, callback_help);
+  console.defineCommand("history",     ParsingConsole::tcodes_0, "Print command history.", "", 0, callback_print_history);
+  console.defineCommand("info",        'i', ParsingConsole::tcodes_str_1, "Print the catalog's vital stats.", "", 0, callback_catalog_info);
+  console.defineCommand("scan",        ParsingConsole::tcodes_str_1, "Read the filesystem to fill out the catalog.", "", 0, callback_start_scan);
+  console.defineCommand("unload",      ParsingConsole::tcodes_str_1, "Discard the current catalog.", "", 0, callback_unload);
+  console.defineCommand("max-print",   ParsingConsole::tcodes_str_1, "Sets the maximum print width.", "", 0, callback_max_print_width);
+  console.defineCommand("catalog",     ParsingConsole::tcodes_str_1, "Create a new catalog at the given path.", "", 1, callback_new_catalog);
+  console.defineCommand("tag",         ParsingConsole::tcodes_str_1, "Set a tag for the catalog.", "", 1, callback_set_tag);
+  console.defineCommand("notes",       ParsingConsole::tcodes_str_1, "Set the notes on the catalog.", "", 1, callback_set_notes);
+  console.defineCommand("quit",        'Q', ParsingConsole::tcodes_0, "Commit sudoku.", "", 0, callback_program_quit);
   console.setTXTerminator(LineTerm::CRLF);
   console.setRXTerminator(LineTerm::LF);
   console.localEcho(false);
@@ -682,7 +662,8 @@ int main(int argc, char *argv[]) {
     printf("%c[36m%s> %c[39m", 0x1B, argv[0], 0x1B);
     bzero(input_text, U_INPUT_BUFF_SIZE);
     if (fgets(input_text, U_INPUT_BUFF_SIZE, stdin) != NULL) {
-      switch (console.feed(input_text)) {
+      StringBuilder input_chunk(input_text);
+      switch (console.provideBuffer(&input_chunk)) {
         case -1:   // console buffered the data, but took no other action.
         default:
           break;
