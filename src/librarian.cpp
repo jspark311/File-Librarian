@@ -42,14 +42,13 @@
 #include "CppPotpourri.h"
 #include "ParsingConsole.h"
 
-#define FP_VERSION         "0.0.2"    // Program version.
-#define U_INPUT_BUFF_SIZE      512    // The maximum size of user input.
+#include "Platform/Linux.h"
+
+#define FP_VERSION         "0.0.3"    // Program version.
+#define U_INPUT_BUFF_SIZE     8192    // The maximum size of user input.
 
 using namespace std;
 
-
-
-const int BUFFER_LEN       = 8192;      // This is the maximum size of any given packet we can handle.
 const int INTERRUPT_PERIOD = 1;        // How many seconds between SIGALRM interrupts?
 
 int continue_running  = 1;
@@ -450,8 +449,7 @@ int initSigHandlers() {
 *******************************************************************************/
 
 int callback_help(StringBuilder* text_return, StringBuilder* args) {
-  text_return->concat("==< HELP >=========================================================================================\n");
-  text_return->concatf("%s %s   Build date:  %s %s\n", program_name, FP_VERSION, __DATE__, __TIME__);
+  text_return->concatf("%s %s\n", program_name, FP_VERSION);
   if (0 < args->count()) {
     console.printHelp(text_return, args->position_trimmed(0));
   }
@@ -534,6 +532,80 @@ int callback_set_notes(StringBuilder* text_return, StringBuilder* args) {
   return 0;
 }
 
+
+int callback_conf_tools(StringBuilder* text_return, StringBuilder* args) {
+  // char* cmd = args->position_trimmed(0);
+  // char* key = args->position_trimmed(1);
+  // char* val = args->position_trimmed(2);
+  // UserConf user_conf;
+  //
+  // text_return->concat("\n");
+  // if (0 == StringBuilder::strcasecmp(cmd, "val")) {
+  //   switch (args->count()) {
+  //     case 3:
+  //       text_return->concatf(
+  //         "Setting key %s to %s returns %d.\n",
+  //         key, val, user_conf.setConf((const char*) key, val)
+  //       );
+  //       break;
+  //     default:
+  //       user_conf.printConf(text_return, (1 < args->count()) ? key : nullptr);
+  //       break;
+  //   }
+  // }
+  // else if (0 == StringBuilder::strcasecmp(cmd, "pack")) {
+  //   // Tool for serializing conf into buffers. Should support CBOR and BINARY,
+  //   //   for interchange and local storage, respectively.
+  //   StringBuilder ser_out;
+  //   TCode fmt = TCode::BINARY;
+  //   int8_t ret = 0;
+  //   if (2 == args->count()) {
+  //     if (0 == StringBuilder::strcasecmp(key, "cbor")) {
+  //       fmt = TCode::CBOR;
+  //     }
+  //     else if (0 == StringBuilder::strcasecmp(key, "bin")) {
+  //       fmt = TCode::BINARY;
+  //     }
+  //     else {
+  //       ret = -1;
+  //     }
+  //     if (0 == ret) {
+  //       ret = user_conf.serialize(&ser_out, fmt);
+  //       if (0 != ret) {
+  //         text_return->concatf("Conf serializer returned %d.\n", ret);
+  //       }
+  //     }
+  //   }
+  //
+  //   if (0 < ser_out.length()) {
+  //     text_return->concatf("\n---< Conf >-------------------------------\n");
+  //     StringBuilder::printBuffer(text_return, ser_out.string(), ser_out.length(), "\t");
+  //   }
+  //   else {
+  //     text_return->concat("Usage: pack [cbor|bin]\n");
+  //   }
+  // }
+  // else if (0 == StringBuilder::strcasecmp(cmd, "save")) {
+  //   if (1 == args->count()) {
+  //     text_return->concatf("Saving %s returned %d.\n", key, user_conf.save(key));
+  //   }
+  //   else {
+  //     text_return->concat("Usage: save\n");
+  //   }
+  // }
+  // else if (0 == StringBuilder::strcasecmp(cmd, "load")) {
+  //   if (1 == args->count()) {
+  //     text_return->concatf("Loading %s returned %d.\n", key, user_conf.load(key));
+  //   }
+  //   else {
+  //     text_return->concat("Usage: load\n");
+  //   }
+  // }
+  // else {
+  //   text_return->concat("First argument must be the subcommand (val, pack, save, load).\n");
+  // }
+  return 0;
+}
 
 
 /****************************************************************************************************
@@ -643,6 +715,7 @@ int main(int argc, char *argv[]) {
 
   console.defineCommand("help",        '?', ParsingConsole::tcodes_str_1, "Prints help to console.", "", 0, callback_help);
   console.defineCommand("history",     ParsingConsole::tcodes_0, "Print command history.", "", 0, callback_print_history);
+  platform.configureConsole(&console);
   console.defineCommand("info",        'i', ParsingConsole::tcodes_str_1, "Print the catalog's vital stats.", "", 0, callback_catalog_info);
   console.defineCommand("scan",        ParsingConsole::tcodes_str_1, "Read the filesystem to fill out the catalog.", "", 0, callback_start_scan);
   console.defineCommand("unload",      ParsingConsole::tcodes_str_1, "Discard the current catalog.", "", 0, callback_unload);
@@ -650,6 +723,7 @@ int main(int argc, char *argv[]) {
   console.defineCommand("catalog",     ParsingConsole::tcodes_str_1, "Create a new catalog at the given path.", "", 1, callback_new_catalog);
   console.defineCommand("tag",         ParsingConsole::tcodes_str_1, "Set a tag for the catalog.", "", 1, callback_set_tag);
   console.defineCommand("notes",       ParsingConsole::tcodes_str_1, "Set the notes on the catalog.", "", 1, callback_set_notes);
+  console.defineCommand("conf",        'c', ParsingConsole::tcodes_str_3, "Dump/set conf key.", "[conf_key] [value]", 1, callback_conf_tools);
   console.defineCommand("quit",        'Q', ParsingConsole::tcodes_0, "Commit sudoku.", "", 0, callback_program_quit);
   console.setTXTerminator(LineTerm::CRLF);
   console.setRXTerminator(LineTerm::LF);
@@ -686,5 +760,5 @@ int main(int argc, char *argv[]) {
     root_catalog = nullptr;
   }
 
-  exit(0);
+  platform.firmware_shutdown(0);
 }

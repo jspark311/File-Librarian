@@ -2,7 +2,7 @@
 # Author: J. Ian Lindsay
 
 CC		= g++
-CXXFLAGS = -I./src -I./lib/CppPotpourri/src -Wl,--gc-sections -static -Wall
+CXXFLAGS = -I./src -I./lib/CppPotpourri/src -I./lib -Wl,--gc-sections -Wall
 LIBS	= -L$(OUTPUT_PATH) -L$(BUILD_ROOT)/lib -lstdc++ -lcrypto -lm $(shell mysql_config --libs)
 
 export BUILD_ROOT    = $(shell pwd)
