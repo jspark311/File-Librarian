@@ -617,7 +617,7 @@ int main(int argc, char *argv[]) {
   program_name            = argv[0];  // Our name.
   StringBuilder output;
 
-  srand(time(NULL));          // Seed the PRNG...
+  platform.init();
 
   // If we don't have these conf keys, we can't do our jaerb...
   conf.setRequiredConfKeys(1, "verbosity");
