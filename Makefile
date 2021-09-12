@@ -10,6 +10,8 @@ export OUTPUT_PATH   = $(BUILD_ROOT)/build/
 
 SRCS    = src/librarian.cpp src/MySQLConnector/*.cpp
 SRCS   += lib/CppPotpourri/src/*.cpp
+SRCS   += lib/CppPotpourri/src/Identity/*.cpp
+SRCS   += lib/CppPotpourri/src/cbor-cpp/*.cpp
 SRCS   += lib/Platform/src/Linux.cpp
 SRCS   += lib/Platform/src/LinuxStdIO.cpp
 SRCS   += src/ConfigManager/*.cpp src/MySQLConnector/DBAbstractions/*.cpp

@@ -41,6 +41,7 @@
 #include "StringBuilder.h"
 #include "CppPotpourri.h"
 #include "ParsingConsole.h"
+#include "Identity/Identity.h"
 
 #include <Linux.h>
 
@@ -703,7 +704,7 @@ int main(int argc, char *argv[]) {
 
   console.defineCommand("help",        '?', ParsingConsole::tcodes_str_1, "Prints help to console.", "", 0, callback_help);
   console.defineCommand("history",     ParsingConsole::tcodes_0, "Print command history.", "", 0, callback_print_history);
-  platform.configureConsole(&console);
+  console.defineCommand("pfinfo",      ParsingConsole::tcodes_str_1,  "Platform information", "[subgroup]", 0, callback_platform_info);
   console.defineCommand("info",        'i', ParsingConsole::tcodes_str_1, "Print the catalog's vital stats.", "", 0, callback_catalog_info);
   console.defineCommand("scan",        ParsingConsole::tcodes_str_1, "Read the filesystem to fill out the catalog.", "", 0, callback_start_scan);
   console.defineCommand("unload",      ParsingConsole::tcodes_str_1, "Discard the current catalog.", "", 0, callback_unload);
