@@ -2,7 +2,7 @@
 # Author: J. Ian Lindsay
 
 CC		= g++
-CXXFLAGS = -I./src -I./lib/CppPotpourri/src -I./lib -Wl,--gc-sections -Wall
+CXXFLAGS = -I./src -I./lib/CppPotpourri/src -I./lib/Platform -Wl,--gc-sections -Wall
 LIBS	= -L$(OUTPUT_PATH) -L$(BUILD_ROOT)/lib -lstdc++ -lcrypto -lm $(shell mysql_config --libs)
 
 export BUILD_ROOT    = $(shell pwd)
@@ -11,6 +11,7 @@ export OUTPUT_PATH   = $(BUILD_ROOT)/build/
 SRCS    = src/librarian.cpp src/MySQLConnector/*.cpp
 SRCS   += lib/CppPotpourri/src/*.cpp
 SRCS   += lib/Platform/src/Linux.cpp
+SRCS   += lib/Platform/src/LinuxStdIO.cpp
 SRCS   += src/ConfigManager/*.cpp src/MySQLConnector/DBAbstractions/*.cpp
 
 default:	librarian
@@ -33,3 +34,6 @@ install:	librarian
 clean:
 	rm -rf $(OUTPUT_PATH)
 	rm -f librarian *.o *~
+
+fullclean: clean
+	$(MAKE) clean -C lib/

@@ -42,9 +42,9 @@
 #include "CppPotpourri.h"
 #include "ParsingConsole.h"
 
-#include "Platform/Linux.h"
+#include <Linux.h>
 
-#define FP_VERSION         "0.0.3"    // Program version.
+#define FP_VERSION         "0.0.4"    // Program version.
 #define U_INPUT_BUFF_SIZE     8192    // The maximum size of user input.
 
 using namespace std;
@@ -64,6 +64,8 @@ int maximum_field_print = 65;         // The maximum number of bytes we will pri
 
 /* Console junk... */
 ParsingConsole console(U_INPUT_BUFF_SIZE);
+LinuxStdIO console_adapter;
+
 
 
 /****************************************************************************************************
@@ -274,29 +276,29 @@ int causeParentToReloadMysql() {
 // Returns 1 if we ought to be logging to the fp_log.
 //    Since this is our default logging target, we will response 'yes' even if the DB isn't loaded.
 int shouldLogToSyslog() {
-    int return_value    = conf.getConfigIntByKey("log-to-syslog");
-    if (return_value == -1) {
-        return_value    = 1;
-    }
-    return return_value;
+  int return_value    = conf.getConfigIntByKey("log-to-syslog");
+  if (return_value == -1) {
+    return_value    = 1;
+  }
+  return return_value;
 }
 
 
 int shouldLogToStdout() {
-    int return_value    = conf.getConfigIntByKey("log-to-stdout");
-    if (return_value == -1) {
-        return_value    = 0;
-    }
-    return return_value;
+  int return_value    = conf.getConfigIntByKey("log-to-stdout");
+  if (return_value == -1) {
+    return_value    = 0;
+  }
+  return return_value;
 }
 
 
 int shouldLogToDatabase() {
-    int return_value    = conf.getConfigIntByKey("log-to-database");
-    if (return_value == -1) {
-        return_value    = 0;
-    }
-    return return_value;
+  int return_value    = conf.getConfigIntByKey("log-to-database");
+  if (return_value == -1) {
+    return_value    = 0;
+  }
+  return return_value;
 }
 
 
@@ -367,15 +369,6 @@ void printUsage() {
 ****************************************************************************************************/
 void sig_handler(int signo) {
   switch (signo) {
-    case SIGINT:
-      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGINT signal.\n");
-      exit(1);
-    case SIGKILL:
-      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGKILL signal. Something bad must have happened.\n");
-      exit(1);
-    case SIGTERM:
-      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGTERM signal.\n");
-      break;
     case SIGQUIT:
       fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGQUIT signal.\n");
       continue_running = 0;
@@ -407,10 +400,6 @@ void sig_handler(int signo) {
 int initSigHandlers() {
     int return_value    = 1;
     // Try to open a binding to listen for signals from the OS...
-    if (signal(SIGINT, sig_handler) == SIG_ERR) {
-        fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to bind SIGINT to the signal system. Failing...");
-        return_value = 0;
-    }
     if (signal(SIGQUIT, sig_handler) == SIG_ERR) {
         fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to bind SIGQUIT to the signal system. Failing...");
         return_value = 0;
@@ -419,20 +408,12 @@ int initSigHandlers() {
         fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to bind SIGHUP to the signal system. Failing...");
         return_value = 0;
     }
-    if (signal(SIGTERM, sig_handler) == SIG_ERR) {
-        fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to bind SIGTERM to the signal system. Failing...");
-        return_value = 0;
-    }
     if (signal(SIGUSR1, sig_handler) == SIG_ERR) {
         fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to bind SIGUSR1 to the signal system. Failing...");
         return_value = 0;
     }
     if (signal(SIGUSR2, sig_handler) == SIG_ERR) {
         fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to bind SIGUSR2 to the signal system. Failing...");
-        return_value = 0;
-    }
-    if (signal(SIGALRM, sig_handler) == SIG_ERR) {
-        fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to bind SIGALRM to the signal system. Failing...");
         return_value = 0;
     }
     if (signal(SIGCHLD, SIG_IGN) == SIG_ERR) {
@@ -661,7 +642,7 @@ int main(int argc, char *argv[]) {
   }
 
   parent_pid = getpid();                                        // We will need to know our root PID.
-  initSigHandlers();
+  //initSigHandlers();
 
   // Once we have those things, we can ask MySQL for the bulk of the config, and set up whatever else we need for our purpose...
   if (db.provisionConnectionDetails(db_conf_filename) >= 0) {            // Need to know which DB to connect with.
@@ -711,7 +692,14 @@ int main(int argc, char *argv[]) {
     //}
     ///* INTERNAL INTEGRITY-CHECKS */
 
-  char *input_text  = (char*) alloca(U_INPUT_BUFF_SIZE);  // Buffer to hold user-input.
+  // Mutually connect the console class to STDIO.
+  console_adapter.readCallback(&console);
+  console.setOutputTarget(&console_adapter);
+
+  // We want to have a nice prompt string...
+  StringBuilder prompt_string;
+  prompt_string.concatf("%c[36m%s> %c[39m", 0x1B, argv[0], 0x1B);
+  console.setPromptString((const char*) prompt_string.string());
 
   console.defineCommand("help",        '?', ParsingConsole::tcodes_str_1, "Prints help to console.", "", 0, callback_help);
   console.defineCommand("history",     ParsingConsole::tcodes_0, "Print command history.", "", 0, callback_print_history);
@@ -728,33 +716,22 @@ int main(int argc, char *argv[]) {
   console.setTXTerminator(LineTerm::CRLF);
   console.setRXTerminator(LineTerm::LF);
   console.localEcho(false);
+  console.emitPrompt(true);
+  console.hasColor(true);
   console.init();
 
+  output.concatf("%s initialized.\n", argv[0]);
+  console.printToLog(&output);
+  console.printPrompt();
 
   // The main loop. Run until told to stop.
   while (continue_running) {
-    printf("%c[36m%s> %c[39m", 0x1B, argv[0], 0x1B);
-    bzero(input_text, U_INPUT_BUFF_SIZE);
-    if (fgets(input_text, U_INPUT_BUFF_SIZE, stdin) != NULL) {
-      StringBuilder input_chunk(input_text);
-      switch (console.provideBuffer(&input_chunk)) {
-        case -1:   // console buffered the data, but took no other action.
-        default:
-          break;
-        case 0:   // A full line came in.
-          break;
-        case 1:   // A callback was called.
-          break;
-      }
-    }
-    console.fetchLog(&output);
-    if (output.length() > 0) {
-      printf("%s", output.string());
-      output.clear();
-    }
+    console_adapter.poll();
   }
 
-  fp_log(__PRETTY_FUNCTION__, LOG_INFO, "Stopping...");
+  output.concat("Stopping nicely...\n");
+  console.printToLog(&output);
+
   if (nullptr != root_catalog) {
     delete root_catalog;
     root_catalog = nullptr;
