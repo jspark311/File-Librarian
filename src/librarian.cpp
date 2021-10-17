@@ -54,13 +54,13 @@ const int INTERRUPT_PERIOD = 1;        // How many seconds between SIGALRM inter
 
 int continue_running  = 1;
 int parent_pid          = 0;            // The PID of the root process (always).
-int pd_pid;                             // This is the PID for the dialplan thread.
+int pd_pid;                             // This is the PID for the worker thread.
 
 LibrarianDB db;
 ConfigManager conf;
 ORMDatahiveVersion* root_catalog = nullptr;
 
-char *program_name;
+char* program_name;
 int maximum_field_print = 65;         // The maximum number of bytes we will print for sessions. Has no bearing on file output.
 
 /* Console junk... */
@@ -364,68 +364,6 @@ void printUsage() {
 }
 
 
-
-/****************************************************************************************************
-* Signal catching code.                                                                             *
-****************************************************************************************************/
-void sig_handler(int signo) {
-  switch (signo) {
-    case SIGQUIT:
-      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGQUIT signal.\n");
-      continue_running = 0;
-      break;
-    case SIGHUP:
-      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGHUP signal.\n");
-      continue_running = 0;
-      break;
-    case SIGSTOP:
-      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Received a SIGSTOP signal.\n");
-      continue_running = 0;
-      break;
-    case SIGUSR1:      // Cause a configuration reload.
-      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "USR1 received.\n");
-      break;
-    case SIGUSR2:    // Cause a database reload.
-      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "USR2 received.\n");
-      break;
-    default:
-      fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Unhandled signal: %d\n", signo);
-      break;
-  }
-}
-
-
-
-// The parent process should call this function to set the callback address to its signal handlers.
-//     Returns 1 on success, 0 on failure.
-int initSigHandlers() {
-    int return_value    = 1;
-    // Try to open a binding to listen for signals from the OS...
-    if (signal(SIGQUIT, sig_handler) == SIG_ERR) {
-        fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to bind SIGQUIT to the signal system. Failing...");
-        return_value = 0;
-    }
-    if (signal(SIGHUP, sig_handler) == SIG_ERR) {
-        fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to bind SIGHUP to the signal system. Failing...");
-        return_value = 0;
-    }
-    if (signal(SIGUSR1, sig_handler) == SIG_ERR) {
-        fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to bind SIGUSR1 to the signal system. Failing...");
-        return_value = 0;
-    }
-    if (signal(SIGUSR2, sig_handler) == SIG_ERR) {
-        fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to bind SIGUSR2 to the signal system. Failing...");
-        return_value = 0;
-    }
-    if (signal(SIGCHLD, SIG_IGN) == SIG_ERR) {
-        fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to bind SIGCHLD to the signal system. Failing...");
-        continue_running = 0;
-    }
-    return return_value;
-}
-
-
-
 /*******************************************************************************
 * Console callbacks
 *******************************************************************************/
@@ -642,8 +580,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  parent_pid = getpid();                                        // We will need to know our root PID.
-  //initSigHandlers();
+  parent_pid = getpid();    // We will need to know our root PID.
 
   // Once we have those things, we can ask MySQL for the bulk of the config, and set up whatever else we need for our purpose...
   if (db.provisionConnectionDetails(db_conf_filename) >= 0) {            // Need to know which DB to connect with.
@@ -670,7 +607,7 @@ int main(int argc, char *argv[]) {
     *  Now... at this point, with our config complete and a database at our disposal, we do some administrative checks...
     *  The first task is to look in the mirror and find our executable's full path. This will vary by OS, but for now we
     *  assume that we are on a linux system.... */
-    char *exe_path = (char *) alloca(512);   // 512 bytes ought to be enough for our path info...
+    char* exe_path = (char *) alloca(512);   // 512 bytes ought to be enough for our path info...
     memset(exe_path, 0x00, 512);
     int exe_path_len = readlink("/proc/self/exe", exe_path, 512);
     if (!(exe_path_len > 0)) {
@@ -714,7 +651,7 @@ int main(int argc, char *argv[]) {
   console.defineCommand("notes",       ParsingConsole::tcodes_str_1, "Set the notes on the catalog.", "", 1, callback_set_notes);
   console.defineCommand("conf",        'c', ParsingConsole::tcodes_str_3, "Dump/set conf key.", "[conf_key] [value]", 1, callback_conf_tools);
   console.defineCommand("quit",        'Q', ParsingConsole::tcodes_0, "Commit sudoku.", "", 0, callback_program_quit);
-  console.setTXTerminator(LineTerm::CRLF);
+  console.setTXTerminator(LineTerm::LF);
   console.setRXTerminator(LineTerm::LF);
   console.localEcho(false);
   console.emitPrompt(true);
