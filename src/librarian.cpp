@@ -370,18 +370,11 @@ void printUsage() {
 
 int callback_help(StringBuilder* text_return, StringBuilder* args) {
   text_return->concatf("%s %s\n", program_name, FP_VERSION);
-  if (0 < args->count()) {
-    console.printHelp(text_return, args->position_trimmed(0));
-  }
-  else {
-    console.printHelp(text_return);
-  }
-  return 0;
+  return console.console_handler_help(text_return, args);
 }
 
-int callback_print_history(StringBuilder* text_return, StringBuilder* args) {
-  console.printHistory(text_return);
-  return 0;
+int callback_console_tools(StringBuilder* text_return, StringBuilder* args) {
+  return console.console_handler_conf(text_return, args);
 }
 
 int callback_program_quit(StringBuilder* text_return, StringBuilder* args) {
@@ -639,8 +632,8 @@ int main(int argc, char *argv[]) {
   prompt_string.concatf("%c[36m%s> %c[39m", 0x1B, argv[0], 0x1B);
   console.setPromptString((const char*) prompt_string.string());
 
-  console.defineCommand("help",        '?', ParsingConsole::tcodes_str_1, "Prints help to console.", "", 0, callback_help);
-  console.defineCommand("history",     ParsingConsole::tcodes_0, "Print command history.", "", 0, callback_print_history);
+  console.defineCommand("help",        '?',  ParsingConsole::tcodes_str_1, "Prints help to console.", "[<specific command>]", 0, callback_help);
+  console.defineCommand("console",     '\0', ParsingConsole::tcodes_str_3, "Console conf.", "[echo|prompt|force|rxterm|txterm]", 0, callback_console_tools);
   console.defineCommand("pfinfo",      ParsingConsole::tcodes_str_1,  "Platform information", "[subgroup]", 0, callback_platform_info);
   console.defineCommand("info",        'i', ParsingConsole::tcodes_str_1, "Print the catalog's vital stats.", "", 0, callback_catalog_info);
   console.defineCommand("scan",        ParsingConsole::tcodes_str_1, "Read the filesystem to fill out the catalog.", "", 0, callback_start_scan);
