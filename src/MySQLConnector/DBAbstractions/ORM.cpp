@@ -20,11 +20,11 @@
 #include "LightLinkedList.h"
 #include "PriorityQueue.h"
 #include "StringBuilder.h"
+#include "AbstractPlatform.h"
 
 extern char* trim(char *str);
 extern int PROC_SHA256_MSG(unsigned char *msg, long msg_len, unsigned char *md, unsigned int md_len);
 extern char* printBinStringToBuffer(unsigned char *str, int len, char *buffer);
-extern void fp_log(const char *fxn_name, int severity, const char *message, ...);
 
 using namespace std;
 
@@ -97,7 +97,7 @@ void worker_thread_db_write() {
             }
           }
           else {
-            fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to save record to database.");
+            c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to save record to database.");
             printf("%s\n", (char*) insert_query.string());
           }
         }
@@ -224,6 +224,7 @@ int ORMFileData::_hash_file() {
           }
           else {
             printf("Aborting read due to zero byte return. %s\n", _path);
+            c3p_log(LOG_LEV_DEBUG, __PRETTY_FUNCTION__, "Aborting read due to zero byte return. %s\n", _path);
             total_read = _fsize;
           }
         } while (total_read < _fsize);
@@ -235,20 +236,20 @@ int ORMFileData::_hash_file() {
           _closely_examined = true;
         }
         else {
-          fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to run the hash on %s", _path);
+          c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to run the hash on %s", _path);
         }
       }
       else {
-        fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to load the digest algo SHA256.");
+        c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to load the digest algo SHA256.");
       }
     }
     else {
-      fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to allocate %lu bytes from heap in pursuit of hashing %s", _fsize, _path);
+      c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to allocate %lu bytes from heap in pursuit of hashing %s", _fsize, _path);
     }
     close(fd);
   }
   else {
-    fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to open path for hashing: %s", _path);
+    c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to open path for hashing: %s", _path);
   }
   return return_value;
 }
@@ -285,23 +286,23 @@ int ORMFileData::_fill_from_stat() {
 
       if (_is_file) {
         _fsize = statbuf.st_size;
-        //fp_log(__PRETTY_FUNCTION__, LOG_INFO, "Path is a file with size %lu: %s", _fsize, _path);
+        //c3p_log(LOG_INFO, "Path is a file with size %lu: %s", _fsize, _path);
       }
       else if (_is_dir) {
-        //fp_log(__PRETTY_FUNCTION__, LOG_INFO, "Path is a directory: %s", _path);
+        //c3p_log(LOG_INFO, "Path is a directory: %s", _path);
       }
       else {
-        //fp_log(__PRETTY_FUNCTION__, LOG_INFO, "Path is a link: %s", _path);
+        //c3p_log(LOG_INFO, "Path is a link: %s", _path);
       }
     }
     else {
       // TODO: Some unhandled filesystem object.
-      fp_log(__PRETTY_FUNCTION__, LOG_WARNING, "Unhandled filesystem object at path: %s", _path);
+      c3p_log(LOG_WARNING, __PRETTY_FUNCTION__, "Unhandled filesystem object at path: %s", _path);
     }
   }
   else {
     perror("stat");
-    fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to lstat path: %s", _path);
+    c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to lstat path: %s", _path);
   }
 
   return return_value;
@@ -335,7 +336,7 @@ long ORMFileData::dive(FSOCounts* fso_counts, LinkedList<StringBuilder*>* log) {
           fso_counts->tally(n_fd);
         }
         else {
-          fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to allocate from heap for new ORMFileData.");
+          c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to allocate from heap for new ORMFileData.");
         }
       }
     }
@@ -346,7 +347,7 @@ long ORMFileData::dive(FSOCounts* fso_counts, LinkedList<StringBuilder*>* log) {
   }
   else{
     printf("Failed\n");
-    fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to open DIR %s", _path);
+    c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to open DIR %s", _path);
     return -1;
   }
   return files;
@@ -444,14 +445,14 @@ void ORMFileData::cache_uid_gid_strings() {
     struct group* grp_s  = getgrgid(_gid);
     if (grp_s) {
       gid_str_table[_gid] = grp_s->gr_name;
-      fp_log(__PRETTY_FUNCTION__, LOG_INFO, "Added group %s", grp_s->gr_name);
+      c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "Added group %s", grp_s->gr_name);
     }
   }
   if (!uid_str_table[_uid]) {
     struct passwd* psw_s = getpwuid(_uid);
     if (psw_s) {
       uid_str_table[_uid] = psw_s->pw_name;
-      fp_log(__PRETTY_FUNCTION__, LOG_INFO, "Added user %s", psw_s->pw_name);
+      c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "Added user %s", psw_s->pw_name);
     }
   }
 }

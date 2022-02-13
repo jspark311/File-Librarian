@@ -1,4 +1,5 @@
 #include "ConfigManager.h"
+#include "AbstractPlatform.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -6,11 +7,8 @@
 #include <ctype.h>
 #include <signal.h>
 #include <unistd.h>
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <syslog.h>
-
-extern void fp_log(const char *fxn_name, int severity, const char *message, ...);
-
 
 
 ConfigManager::ConfigManager() {
@@ -29,15 +27,15 @@ void ConfigManager::dumpCurrentConfig() {
     int i    = 0;
     char *temp_buf = (char *) alloca(256);
     ConfigItem *cur    = this->current_config;
-    fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Current configuration:");
-    fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "=================================================================");
+    c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "Current configuration:");
+    c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "=================================================================");
     while (cur != NULL) {
         memset(temp_buf, 0x00, 256);
         sprintf(temp_buf, "%2d %30s %10s %5s %s", i++, cur->key, (this->isConfKeyRequired(cur->key) ? "(required)" : "          "), (cur->clobberable ? "     " : "(cli)"), cur->value);
-        fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "%s", temp_buf);
+        c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "%s", temp_buf);
         cur = cur->next;
     }
-    fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "=================================================================");
+    c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "=================================================================");
 }
 
 
@@ -89,7 +87,7 @@ int ConfigManager::getConfigIntByKey(const char *desired_key){
     int return_value    = -1;
     char *temp_str    = this->getConfigStringByKey(desired_key);
     if (temp_str != NULL) {
-        return_value = atoi(temp_str); 
+        return_value = atoi(temp_str);
     }
     return return_value;
 }
@@ -171,14 +169,14 @@ void ConfigManager::insertConfigItem(const char *key, const char *val) {
 
 /**
 * Variadic function to set the list of required configuration keys.
-* The first parameter is the number of configuration keys to be defined. This MUST 
+* The first parameter is the number of configuration keys to be defined. This MUST
 *   match the cardinality of the var_args. If it does not, the behavior is undefined.
 * Can be called several times without hurting existing defs.
 */
 void ConfigManager::setRequiredConfKeys(int count, ...) {
     RequiredConfig *temp_r_conf = NULL;
     RequiredConfig *current_r_conf = this->complete_args;
-    
+
     va_list marker;
     va_start(marker, count);
     for (int i = 0; i < count; i++) {
@@ -224,7 +222,7 @@ bool ConfigManager::isConfigComplete(void) {
         RequiredConfig *temp_key = this->complete_args;
         while (temp_key != NULL) {
             if (this->configKeyExists(temp_key->key) == 0) {
-                fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Missing the configuration item %s.", temp_key->key);
+                c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Missing the configuration item %s.", temp_key->key);
                 return_value = false;
             }
             temp_key = temp_key->next;
@@ -240,7 +238,7 @@ bool ConfigManager::isConfigComplete(void) {
 */
 int ConfigManager::loadConfigFromDb(MySQLConnector *db){
     int return_value = -1;    // Fail by default.
-	
+
     if (db->dbConnected()) {
         if (db->node_id != NULL) {
             this->insertConfigItem("node_id", db->node_id);
@@ -259,22 +257,21 @@ int ConfigManager::loadConfigFromDb(MySQLConnector *db){
                     }
                 }
                 else if (num_rows == 0) {
-                    fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Zero rows were returned while looking for configuration data.");
+                    c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "Zero rows were returned while looking for configuration data.");
                 }
                 else {
-                    fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Experienced an error while looking in the database for configuration data: %s", mysql_error(db->mysql));
+                    c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "Experienced an error while looking in the database for configuration data: %s", mysql_error(db->mysql));
                 }
                 mysql_free_result(result);
             }
             else {
-                fp_log(__PRETTY_FUNCTION__, LOG_NOTICE, "Expected a result set, but none was provided.");
+                c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "Expected a result set, but none was provided.");
             }
         }
         this->dumpCurrentConfig();
     }
     else {
-        fp_log(__PRETTY_FUNCTION__, LOG_WARNING, "loadConfigFromDb(): Could not establish a connection to a database. Therefore, no config was read from it.");
+        c3p_log(LOG_WARNING, __PRETTY_FUNCTION__, "loadConfigFromDb(): Could not establish a connection to a database. Therefore, no config was read from it.");
     }
     return return_value;
 }
-

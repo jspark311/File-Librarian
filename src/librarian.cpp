@@ -72,9 +72,7 @@ LinuxStdIO console_adapter;
 /****************************************************************************************************
 * Function prototypes...                                                                            *
 ****************************************************************************************************/
-void fp_log(const char *fxn_name, int severity, const char *message, ...);
-int causeParentToReloadMysql(void);
-
+int causeParentToReloadMysql();
 void printCatalogInfo();
 
 
@@ -121,7 +119,7 @@ int PROC_SHA256_MSG(unsigned char *msg, long msg_len, unsigned char *md, unsigne
     return_value  = 1;
   }
   else {
-    fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to load the digest algo SHA256.");
+    c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to load the digest algo SHA256.");
   }
   return return_value;
 }
@@ -144,16 +142,16 @@ long hashFileByPath(char *path, char *h_buf) {
     memset(self_mass, 0x00, self_size);
     self_file.seekg(0);   // After checking the file size, make sure to reset the read pointer...
     self_file.read(self_mass, self_size);
-    fp_log(__PRETTY_FUNCTION__, LOG_INFO, "%s is %d bytes.", path, self_size);
+    c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "%s is %d bytes.", path, self_size);
 
     if (PROC_SHA256_MSG((unsigned char *) self_mass, self_size, self_digest, digest_size)) {
       memset(h_buf, 0x00, 65);
       printBinStringToBuffer(self_digest, 32, h_buf);
-      fp_log(__PRETTY_FUNCTION__, LOG_INFO, "This binary's SHA256 fingerprint is %s.", h_buf);
+      c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "This binary's SHA256 fingerprint is %s.", h_buf);
       return_value = self_size;
     }
     else {
-      fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to run the hash on the input path.");
+      c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to run the hash on the input path.");
     }
   }
   return return_value;
@@ -210,7 +208,7 @@ long newCatalogPath(char* root) {
     return_value = 0;
   }
   else {
-    fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to instantiate ORMDatahiveVersion for root.");
+    c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to instantiate ORMDatahiveVersion for root.");
   }
   return return_value;
 }
@@ -249,7 +247,7 @@ void printBinString(unsigned char * str, int len) {
             strcat(temp, temp0);
         }
         strcat(temp, "\n");
-        fp_log(__PRETTY_FUNCTION__, LOG_INFO, temp);
+        c3p_log(LOG_INFO, __PRETTY_FUNCTION__, temp);
     }
 }
 
@@ -260,74 +258,13 @@ void printBinString(unsigned char * str, int len) {
 */
 int causeParentToReloadMysql() {
   if (kill(parent_pid, SIGUSR2)) {        // Did it fail?
-    fp_log(__PRETTY_FUNCTION__, LOG_WARNING, "We failed to send a signal to pid %d, which we believe to be our parent process.", parent_pid);
+    c3p_log(LOG_WARNING, __PRETTY_FUNCTION__, "We failed to send a signal to pid %d, which we believe to be our parent process.", parent_pid);
     return 0;
   }
   db.db_connected = 0;     // Sending the signal will only benefit the children that fork later on. In order for our connection
   db.mysql = NULL;         // to be good, we need to re-establish it ourselves. Don't be too concerned about memory, as this PID will be reaped.
   return db.dbConnected();
 }
-
-
-
-/****************************************************************************************************
-* Logging-related functions.                                                                        *
-****************************************************************************************************/
-
-// Returns 1 if we ought to be logging to the fp_log.
-//    Since this is our default logging target, we will response 'yes' even if the DB isn't loaded.
-int shouldLogToSyslog() {
-  int return_value    = conf.getConfigIntByKey("log-to-syslog");
-  if (return_value == -1) {
-    return_value    = 1;
-  }
-  return return_value;
-}
-
-
-int shouldLogToStdout() {
-  int return_value    = conf.getConfigIntByKey("log-to-stdout");
-  if (return_value == -1) {
-    return_value    = 0;
-  }
-  return return_value;
-}
-
-
-int shouldLogToDatabase() {
-  int return_value    = conf.getConfigIntByKey("log-to-database");
-  if (return_value == -1) {
-    return_value    = 0;
-  }
-  return return_value;
-}
-
-
-
-// Log a message. Target is determined by the current_config.
-//    If no logging target is specified, log to stdout.
-void fp_log(const char *fxn_name, int severity, const char *str, ...) {
-  va_list marker;
-  char *temp_buf = (char *) alloca(4096);
-  bzero(temp_buf, 4096);
-  va_start(marker, str);
-  vsprintf(temp_buf, str, marker);
-  va_end(marker);
-
-  int log_disseminated    = 0;
-  time_t seconds = time(NULL);
-  char *time_str    = (char *) alloca(32);
-  strftime(time_str, 32, "%c", gmtime(&seconds));
-  if (shouldLogToSyslog()) {
-    syslog(severity, "%s", temp_buf);
-    log_disseminated    = 1;
-  }
-
-  if ((log_disseminated != 1) || shouldLogToStdout()){
-    printf("%s\n", temp_buf);
-  }
-}
-
 
 
 
@@ -579,18 +516,18 @@ int main(int argc, char *argv[]) {
   if (db.provisionConnectionDetails(db_conf_filename) >= 0) {            // Need to know which DB to connect with.
     db.print_db_conn_detail();          // Writes the connection data to the log.
     if (1 != db.dbConnected()) {
-      fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to connect to database. Stopping...");
+      c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to connect to database. Stopping...");
       exit(1);
     }
     //conf.loadConfigFromDb(&db);         // Load config from the DB.
   }
   else {
-    fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Couldn't parse DB conf from %s. Stopping...", ((db_conf_filename == NULL) ? DEFAULT_CONF_FILE : db_conf_filename));
+    c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Couldn't parse DB conf from %s. Stopping...", ((db_conf_filename == NULL) ? DEFAULT_CONF_FILE : db_conf_filename));
   }
 
   //// Alright... we are done loading configuration. Now let's make sure it is complete...
   //if (!conf.isConfigComplete()) {
-  //    fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Configuration is incomplete. Shutting down...");
+  //    c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Configuration is incomplete. Shutting down...");
   //    exit(1);
   //}
   //setlogmask(LOG_UPTO(conf.getConfigIntByKey("verbosity")));  // Set the log mask to the user's preference.
@@ -604,10 +541,10 @@ int main(int argc, char *argv[]) {
     memset(exe_path, 0x00, 512);
     int exe_path_len = readlink("/proc/self/exe", exe_path, 512);
     if (!(exe_path_len > 0)) {
-        fp_log(__PRETTY_FUNCTION__, LOG_ERR, "%s was unable to read its own path from /proc/self/exe. You may be running it on an unsupported operating system, or be running an old kernel. Please discover the cause and retry. Exiting...", program_name);
+        c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "%s was unable to read its own path from /proc/self/exe. You may be running it on an unsupported operating system, or be running an old kernel. Please discover the cause and retry. Exiting...", program_name);
         exit(1);
     }
-    fp_log(__PRETTY_FUNCTION__, LOG_INFO, "This binary's path is %s", exe_path);
+    c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "This binary's path is %s", exe_path);
 
     // Now to hash ourselves...
     char *h_buf = (char *)alloca(65);
@@ -617,7 +554,7 @@ int main(int argc, char *argv[]) {
     //// If we've stored a hash for our binary, compare it with the hash we calculated. Make sure they match. Pitch a fit if they don't.
     //if (conf.configKeyExists("binary-hash")) {
     //    if (strcasestr(h_buf, conf.getConfigStringByKey("binary-hash")) == NULL) {
-    //      fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Calculated hash value does not match what was stored in your config. Exiting...");
+    //      c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Calculated hash value does not match what was stored in your config. Exiting...");
     //      exit(1);
     //    }
     //}

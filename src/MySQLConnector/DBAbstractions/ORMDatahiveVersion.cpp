@@ -13,10 +13,10 @@
 #include "LightLinkedList.h"
 #include "PriorityQueue.h"
 #include "StringBuilder.h"
+#include "AbstractPlatform.h"
 
 extern char* trim(char *str);
 extern char* printBinStringToBuffer(unsigned char *str, int len, char *buffer);
-extern void fp_log(const char *fxn_name, int severity, const char *message, ...);
 
 using namespace std;
 
@@ -199,7 +199,7 @@ int ORMDatahiveVersion::scan() {
     ret = 0;
   }
   else {
-    fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to scan.");
+    c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to scan.");
   }
   return ret;
 }
@@ -219,7 +219,7 @@ long ORMDatahiveVersion::commit() {
       _saved_to_db = true;
     }
     else {
-      fp_log(__PRETTY_FUNCTION__, LOG_ERR, "Failed to save ORMDatahiveVersion to database.");
+      c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to save ORMDatahiveVersion to database.");
     }
   }
   return files;

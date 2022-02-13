@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include <syslog.h>
 
-extern void fp_log(const char *fxn_name, int severity, const char *message, ...);
-
 LibrarianDB* INSTNACE = nullptr;
 
 
