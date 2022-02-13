@@ -1,4 +1,3 @@
-#include <syslog.h>
 #include <mysql/errmsg.h>
 #include <mysql/mysql.h>
 #include "MySQLConnector.h"
@@ -33,7 +32,7 @@ MySQLConnector::MySQLConnector() {
 
 MySQLConnector::~MySQLConnector() {
     this->dbCleanup();
-    c3p_log(LOG_DEBUG, __PRETTY_FUNCTION__, "MySQLConnector is beginning its free operation.");
+    c3p_log(LOG_LEV_DEBUG, __PRETTY_FUNCTION__, "MySQLConnector is beginning its free operation.");
     if (this->tag != nullptr) {        free(this->tag);        }
     if (this->name != nullptr) {       free(this->name);       }
     if (this->host != nullptr) {       free(this->host);       }
@@ -51,23 +50,23 @@ MySQLConnector::~MySQLConnector() {
     this->password   = nullptr;
     this->charset    = nullptr;
     this->mysql      = nullptr;
-    c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "MySQLConnector finished its free operation.");
+    c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "MySQLConnector finished its free operation.");
 }
 
 
 // A debug function. Prints the database connection details.
 void MySQLConnector::print_db_conn_detail(){
-    c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "Database connection data follows:");
-    c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "==============================");
-    if (this->tag != nullptr) {        c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "DB_TAG:   %s", this->tag);        }
-    if (this->name != nullptr) {       c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "DB_NAME:  %s", this->name);       }
-    if (this->host != nullptr) {       c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "HOST:     %s", this->host);       }
-    if (this->port >= 0) {             c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "PORT:     %d", this->port);       }
-    if (this->socket != nullptr) {     c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "SOCKET:   %s", this->socket);     }
-    if (this->username != nullptr) {   c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "USERNAME: %s", this->username);   }
-    if (this->password != nullptr) {   c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "PASSWORD: %s", this->password);   }
-    if (this->charset != nullptr) {    c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "CHARSET:  %s", this->charset);    }
-    c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "==============================");
+    c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "Database connection data follows:");
+    c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "==============================");
+    if (this->tag != nullptr) {        c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "DB_TAG:   %s", this->tag);        }
+    if (this->name != nullptr) {       c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "DB_NAME:  %s", this->name);       }
+    if (this->host != nullptr) {       c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "HOST:     %s", this->host);       }
+    if (this->port >= 0) {             c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "PORT:     %d", this->port);       }
+    if (this->socket != nullptr) {     c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "SOCKET:   %s", this->socket);     }
+    if (this->username != nullptr) {   c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "USERNAME: %s", this->username);   }
+    if (this->password != nullptr) {   c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "PASSWORD: %s", this->password);   }
+    if (this->charset != nullptr) {    c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "CHARSET:  %s", this->charset);    }
+    c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "==============================");
 }
 
 
@@ -86,20 +85,20 @@ int MySQLConnector::r_query(char *query) {
            switch (err_no) {
                case 0:
                    this->result = mysql_store_result(this->mysql);
-                   c3p_log(LOG_WARNING, __PRETTY_FUNCTION__, "in query 1\n");
+                   c3p_log(LOG_LEV_WARN, __PRETTY_FUNCTION__, "in query 1\n");
                    return_value    = 1;
                    break;
                case 2006:    // MySQL server has gone away.
                    if (causeParentToReloadMysql()) {
                        if (mysql_query(this->mysql, query)) {    // Try to re-run the failed query.
                            err_no = mysql_errno(this->mysql);
-                           c3p_log(LOG_WARNING, __PRETTY_FUNCTION__, "The following query caused error code %d (%s) after being run for the second time. Dropping the query: %s", err_no, mysql_error(this->mysql), query);
+                           c3p_log(LOG_LEV_WARN, __PRETTY_FUNCTION__, "The following query caused error code %d (%s) after being run for the second time. Dropping the query: %s", err_no, mysql_error(this->mysql), query);
                        }
                    }
-                   else c3p_log(LOG_WARNING, __PRETTY_FUNCTION__, "DB failed a reload. The following query was permanently dropped: ", query);
+                   else c3p_log(LOG_LEV_WARN, __PRETTY_FUNCTION__, "DB failed a reload. The following query was permanently dropped: ", query);
                    break;
                default:
-                   c3p_log(LOG_WARNING, __PRETTY_FUNCTION__, "The following query caused error code %d (%s): %s", err_no, mysql_error(this->mysql), query);
+                   c3p_log(LOG_LEV_WARN, __PRETTY_FUNCTION__, "The following query caused error code %d (%s): %s", err_no, mysql_error(this->mysql), query);
                    break;
            }
         }
@@ -197,7 +196,7 @@ int MySQLConnector::parse_line_from_db_conf(char *line) {
 int MySQLConnector::db_parse_root(char *feed){
   int  return_value   = -1;
   if (feed == nullptr) {
-    c3p_log(LOG_WARNING, __PRETTY_FUNCTION__, "Couldn't parse tag: %s", feed);
+    c3p_log(LOG_LEV_WARN, __PRETTY_FUNCTION__, "Couldn't parse tag: %s", feed);
     return return_value;
   }
   int  feed_len       = strlen(feed);
@@ -207,7 +206,7 @@ int MySQLConnector::db_parse_root(char *feed){
   char *line_delim    =  strchr(feed, '\n');
     while ((line_delim != nullptr) && (strlen(line_delim) > 2)) {
         if (this->parse_line_from_db_conf((char *)(line_delim+1)) < 0) {
-            c3p_log(LOG_WARNING, __PRETTY_FUNCTION__, "Ignoring bad line in conf file: %s", ((char *)(line_delim+1)));
+            c3p_log(LOG_LEV_WARN, __PRETTY_FUNCTION__, "Ignoring bad line in conf file: %s", ((char *)(line_delim+1)));
         }
         if (feed_len <= ((line_delim+1)-feed)) {
             line_delim = nullptr;
@@ -230,7 +229,7 @@ int MySQLConnector::provisionConnectionDetails(char *filename) {
 
     if ((filename == nullptr) || (strlen(filename) <= 0)) {        // If the provided filename is NULL, use the default.
         ok_filename    = strdupa(DEFAULT_CONF_FILE);
-        c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "Using default configuration file: %s", ok_filename);
+        c3p_log(LOG_LEV_NOTICE, __PRETTY_FUNCTION__, "Using default configuration file: %s", ok_filename);
     }
     else{
         ok_filename    = filename;
@@ -238,7 +237,7 @@ int MySQLConnector::provisionConnectionDetails(char *filename) {
 
     FILE    *fp = fopen(ok_filename, "r");
     if (fp == nullptr) {
-        c3p_log(LOG_WARNING, __PRETTY_FUNCTION__, "Could not open (%s) for read-only access.\n", ok_filename);
+        c3p_log(LOG_LEV_WARN, __PRETTY_FUNCTION__, "Could not open (%s) for read-only access.\n", ok_filename);
         return return_value;
     }
     size_t  result, file_len;
@@ -248,7 +247,7 @@ int MySQLConnector::provisionConnectionDetails(char *filename) {
 
     char *code = (char*) alloca((sizeof(char) * file_len) + 10);
     if (code == nullptr) {
-            c3p_log(LOG_WARNING, __PRETTY_FUNCTION__, "provisionConnectionDetails(): Failed to allocate %d bytes to read the DB connection data.", file_len);
+            c3p_log(LOG_LEV_WARN, __PRETTY_FUNCTION__, "provisionConnectionDetails(): Failed to allocate %d bytes to read the DB connection data.", file_len);
             return return_value;
     }
     memset(code, 0x00, (sizeof(char) * file_len)+10);
@@ -268,7 +267,7 @@ int MySQLConnector::dbConnected(){
     if (this->mysql == nullptr) {
         this->mysql = mysql_init(nullptr);
         if (this->mysql == nullptr) {
-            c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Cannot connect to the MySQL server. This is a serious problem and will prevent us from running eventually.");
+            c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Cannot connect to the MySQL server. This is a serious problem and will prevent us from running eventually.");
             this->db_connected = -1;
             return 0;
         }
@@ -279,18 +278,18 @@ int MySQLConnector::dbConnected(){
             temp_query.concat(this->name);
             temp_query.concat(";");
             if (mysql_query(this->mysql, (const char*)temp_query.string()) != 0) {
-                c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "Failed to select %s as a database.", this->name);
+                c3p_log(LOG_LEV_NOTICE, __PRETTY_FUNCTION__, "Failed to select %s as a database.", this->name);
             }
             else {
                 mysql_autocommit(this->mysql, 1);
                 this->db_connected = 1;
-                c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "Connected to database %s.", this->name);
+                c3p_log(LOG_LEV_NOTICE, __PRETTY_FUNCTION__, "Connected to database %s.", this->name);
             }
         }
         else {
             this->db_connected = 0;
             char *tmp_str    = (char *) mysql_error(this->mysql);
-            c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to connect to MySQL: %s", tmp_str);
+            c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to connect to MySQL: %s", tmp_str);
             this->print_db_conn_detail();
             this->db_connected    = -1;
         }
@@ -303,15 +302,15 @@ int MySQLConnector::dbConnected(){
 // Call to wrap up any DB-related things so that we can exit clean.
 void MySQLConnector::dbCleanup() {
     if (this->mysql == nullptr) {
-        c3p_log(LOG_WARNING, __PRETTY_FUNCTION__, "We do not seem to have a MySQL server.");
+        c3p_log(LOG_LEV_WARN, __PRETTY_FUNCTION__, "We do not seem to have a MySQL server.");
     }
     else {
         if (!this->no_free_on_destructor) {
-            c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "Closing connection to MySQL server.");
+            c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "Closing connection to MySQL server.");
             mysql_close(this->mysql);
         }
         else {
-            c3p_log(LOG_DEBUG, __PRETTY_FUNCTION__, "This object was copied from a parent process. Declining to close the MySQL connection.");
+            c3p_log(LOG_LEV_DEBUG, __PRETTY_FUNCTION__, "This object was copied from a parent process. Declining to close the MySQL connection.");
         }
         this->db_connected = 0;
         this->mysql = nullptr;

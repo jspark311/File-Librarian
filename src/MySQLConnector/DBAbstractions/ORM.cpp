@@ -6,7 +6,6 @@
 #include <iostream>
 #include <openssl/evp.h>
 #include <sys/stat.h>
-#include <syslog.h>
 #include <time.h>
 #include <dirent.h>
 #include <ctype.h>
@@ -97,7 +96,7 @@ void worker_thread_db_write() {
             }
           }
           else {
-            c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to save record to database.");
+            c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to save record to database.");
             printf("%s\n", (char*) insert_query.string());
           }
         }
@@ -236,20 +235,20 @@ int ORMFileData::_hash_file() {
           _closely_examined = true;
         }
         else {
-          c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to run the hash on %s", _path);
+          c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to run the hash on %s", _path);
         }
       }
       else {
-        c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to load the digest algo SHA256.");
+        c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to load the digest algo SHA256.");
       }
     }
     else {
-      c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to allocate %lu bytes from heap in pursuit of hashing %s", _fsize, _path);
+      c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to allocate %lu bytes from heap in pursuit of hashing %s", _fsize, _path);
     }
     close(fd);
   }
   else {
-    c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to open path for hashing: %s", _path);
+    c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to open path for hashing: %s", _path);
   }
   return return_value;
 }
@@ -286,23 +285,23 @@ int ORMFileData::_fill_from_stat() {
 
       if (_is_file) {
         _fsize = statbuf.st_size;
-        //c3p_log(LOG_INFO, "Path is a file with size %lu: %s", _fsize, _path);
+        //c3p_log(LOG_LEV_INFO, "Path is a file with size %lu: %s", _fsize, _path);
       }
       else if (_is_dir) {
-        //c3p_log(LOG_INFO, "Path is a directory: %s", _path);
+        //c3p_log(LOG_LEV_INFO, "Path is a directory: %s", _path);
       }
       else {
-        //c3p_log(LOG_INFO, "Path is a link: %s", _path);
+        //c3p_log(LOG_LEV_INFO, "Path is a link: %s", _path);
       }
     }
     else {
       // TODO: Some unhandled filesystem object.
-      c3p_log(LOG_WARNING, __PRETTY_FUNCTION__, "Unhandled filesystem object at path: %s", _path);
+      c3p_log(LOG_LEV_WARN, __PRETTY_FUNCTION__, "Unhandled filesystem object at path: %s", _path);
     }
   }
   else {
     perror("stat");
-    c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to lstat path: %s", _path);
+    c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to lstat path: %s", _path);
   }
 
   return return_value;
@@ -336,7 +335,7 @@ long ORMFileData::dive(FSOCounts* fso_counts, LinkedList<StringBuilder*>* log) {
           fso_counts->tally(n_fd);
         }
         else {
-          c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to allocate from heap for new ORMFileData.");
+          c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to allocate from heap for new ORMFileData.");
         }
       }
     }
@@ -347,7 +346,7 @@ long ORMFileData::dive(FSOCounts* fso_counts, LinkedList<StringBuilder*>* log) {
   }
   else{
     printf("Failed\n");
-    c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to open DIR %s", _path);
+    c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to open DIR %s", _path);
     return -1;
   }
   return files;
@@ -445,14 +444,14 @@ void ORMFileData::cache_uid_gid_strings() {
     struct group* grp_s  = getgrgid(_gid);
     if (grp_s) {
       gid_str_table[_gid] = grp_s->gr_name;
-      c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "Added group %s", grp_s->gr_name);
+      c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "Added group %s", grp_s->gr_name);
     }
   }
   if (!uid_str_table[_uid]) {
     struct passwd* psw_s = getpwuid(_uid);
     if (psw_s) {
       uid_str_table[_uid] = psw_s->pw_name;
-      c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "Added user %s", psw_s->pw_name);
+      c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "Added user %s", psw_s->pw_name);
     }
   }
 }

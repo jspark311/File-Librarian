@@ -8,7 +8,6 @@
 #include <signal.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <syslog.h>
 
 
 ConfigManager::ConfigManager() {
@@ -27,15 +26,15 @@ void ConfigManager::dumpCurrentConfig() {
     int i    = 0;
     char *temp_buf = (char *) alloca(256);
     ConfigItem *cur    = this->current_config;
-    c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "Current configuration:");
-    c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "=================================================================");
+    c3p_log(LOG_LEV_NOTICE, __PRETTY_FUNCTION__, "Current configuration:");
+    c3p_log(LOG_LEV_NOTICE, __PRETTY_FUNCTION__, "=================================================================");
     while (cur != NULL) {
         memset(temp_buf, 0x00, 256);
         sprintf(temp_buf, "%2d %30s %10s %5s %s", i++, cur->key, (this->isConfKeyRequired(cur->key) ? "(required)" : "          "), (cur->clobberable ? "     " : "(cli)"), cur->value);
-        c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "%s", temp_buf);
+        c3p_log(LOG_LEV_NOTICE, __PRETTY_FUNCTION__, "%s", temp_buf);
         cur = cur->next;
     }
-    c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "=================================================================");
+    c3p_log(LOG_LEV_NOTICE, __PRETTY_FUNCTION__, "=================================================================");
 }
 
 
@@ -222,7 +221,7 @@ bool ConfigManager::isConfigComplete(void) {
         RequiredConfig *temp_key = this->complete_args;
         while (temp_key != NULL) {
             if (this->configKeyExists(temp_key->key) == 0) {
-                c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Missing the configuration item %s.", temp_key->key);
+                c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Missing the configuration item %s.", temp_key->key);
                 return_value = false;
             }
             temp_key = temp_key->next;
@@ -257,21 +256,21 @@ int ConfigManager::loadConfigFromDb(MySQLConnector *db){
                     }
                 }
                 else if (num_rows == 0) {
-                    c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "Zero rows were returned while looking for configuration data.");
+                    c3p_log(LOG_LEV_NOTICE, __PRETTY_FUNCTION__, "Zero rows were returned while looking for configuration data.");
                 }
                 else {
-                    c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "Experienced an error while looking in the database for configuration data: %s", mysql_error(db->mysql));
+                    c3p_log(LOG_LEV_NOTICE, __PRETTY_FUNCTION__, "Experienced an error while looking in the database for configuration data: %s", mysql_error(db->mysql));
                 }
                 mysql_free_result(result);
             }
             else {
-                c3p_log(LOG_NOTICE, __PRETTY_FUNCTION__, "Expected a result set, but none was provided.");
+                c3p_log(LOG_LEV_NOTICE, __PRETTY_FUNCTION__, "Expected a result set, but none was provided.");
             }
         }
         this->dumpCurrentConfig();
     }
     else {
-        c3p_log(LOG_WARNING, __PRETTY_FUNCTION__, "loadConfigFromDb(): Could not establish a connection to a database. Therefore, no config was read from it.");
+        c3p_log(LOG_LEV_WARN, __PRETTY_FUNCTION__, "loadConfigFromDb(): Could not establish a connection to a database. Therefore, no config was read from it.");
     }
     return return_value;
 }

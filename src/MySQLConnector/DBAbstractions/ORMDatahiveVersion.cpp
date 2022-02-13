@@ -3,7 +3,6 @@
 #include <fcntl.h>
 #include <fstream>
 #include <iostream>
-#include <syslog.h>
 #include <time.h>
 #include <dirent.h>
 #include <ctype.h>
@@ -199,7 +198,7 @@ int ORMDatahiveVersion::scan() {
     ret = 0;
   }
   else {
-    c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to scan.");
+    c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to scan.");
   }
   return ret;
 }
@@ -219,7 +218,7 @@ long ORMDatahiveVersion::commit() {
       _saved_to_db = true;
     }
     else {
-      c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to save ORMDatahiveVersion to database.");
+      c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to save ORMDatahiveVersion to database.");
     }
   }
   return files;

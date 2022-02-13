@@ -119,7 +119,7 @@ int PROC_SHA256_MSG(unsigned char *msg, long msg_len, unsigned char *md, unsigne
     return_value  = 1;
   }
   else {
-    c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to load the digest algo SHA256.");
+    c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to load the digest algo SHA256.");
   }
   return return_value;
 }
@@ -142,16 +142,16 @@ long hashFileByPath(char *path, char *h_buf) {
     memset(self_mass, 0x00, self_size);
     self_file.seekg(0);   // After checking the file size, make sure to reset the read pointer...
     self_file.read(self_mass, self_size);
-    c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "%s is %d bytes.", path, self_size);
+    c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "%s is %d bytes.", path, self_size);
 
     if (PROC_SHA256_MSG((unsigned char *) self_mass, self_size, self_digest, digest_size)) {
       memset(h_buf, 0x00, 65);
       printBinStringToBuffer(self_digest, 32, h_buf);
-      c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "This binary's SHA256 fingerprint is %s.", h_buf);
+      c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "This binary's SHA256 fingerprint is %s.", h_buf);
       return_value = self_size;
     }
     else {
-      c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to run the hash on the input path.");
+      c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to run the hash on the input path.");
     }
   }
   return return_value;
@@ -208,7 +208,7 @@ long newCatalogPath(char* root) {
     return_value = 0;
   }
   else {
-    c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to instantiate ORMDatahiveVersion for root.");
+    c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to instantiate ORMDatahiveVersion for root.");
   }
   return return_value;
 }
@@ -247,7 +247,7 @@ void printBinString(unsigned char * str, int len) {
             strcat(temp, temp0);
         }
         strcat(temp, "\n");
-        c3p_log(LOG_INFO, __PRETTY_FUNCTION__, temp);
+        c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, temp);
     }
 }
 
@@ -258,7 +258,7 @@ void printBinString(unsigned char * str, int len) {
 */
 int causeParentToReloadMysql() {
   if (kill(parent_pid, SIGUSR2)) {        // Did it fail?
-    c3p_log(LOG_WARNING, __PRETTY_FUNCTION__, "We failed to send a signal to pid %d, which we believe to be our parent process.", parent_pid);
+    c3p_log(LOG_LEV_WARN, __PRETTY_FUNCTION__, "We failed to send a signal to pid %d, which we believe to be our parent process.", parent_pid);
     return 0;
   }
   db.db_connected = 0;     // Sending the signal will only benefit the children that fork later on. In order for our connection
@@ -516,18 +516,18 @@ int main(int argc, char *argv[]) {
   if (db.provisionConnectionDetails(db_conf_filename) >= 0) {            // Need to know which DB to connect with.
     db.print_db_conn_detail();          // Writes the connection data to the log.
     if (1 != db.dbConnected()) {
-      c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Failed to connect to database. Stopping...");
+      c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to connect to database. Stopping...");
       exit(1);
     }
     //conf.loadConfigFromDb(&db);         // Load config from the DB.
   }
   else {
-    c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Couldn't parse DB conf from %s. Stopping...", ((db_conf_filename == NULL) ? DEFAULT_CONF_FILE : db_conf_filename));
+    c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Couldn't parse DB conf from %s. Stopping...", ((db_conf_filename == NULL) ? DEFAULT_CONF_FILE : db_conf_filename));
   }
 
   //// Alright... we are done loading configuration. Now let's make sure it is complete...
   //if (!conf.isConfigComplete()) {
-  //    c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Configuration is incomplete. Shutting down...");
+  //    c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Configuration is incomplete. Shutting down...");
   //    exit(1);
   //}
   //setlogmask(LOG_UPTO(conf.getConfigIntByKey("verbosity")));  // Set the log mask to the user's preference.
@@ -541,10 +541,10 @@ int main(int argc, char *argv[]) {
     memset(exe_path, 0x00, 512);
     int exe_path_len = readlink("/proc/self/exe", exe_path, 512);
     if (!(exe_path_len > 0)) {
-        c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "%s was unable to read its own path from /proc/self/exe. You may be running it on an unsupported operating system, or be running an old kernel. Please discover the cause and retry. Exiting...", program_name);
+        c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "%s was unable to read its own path from /proc/self/exe. You may be running it on an unsupported operating system, or be running an old kernel. Please discover the cause and retry. Exiting...", program_name);
         exit(1);
     }
-    c3p_log(LOG_INFO, __PRETTY_FUNCTION__, "This binary's path is %s", exe_path);
+    c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "This binary's path is %s", exe_path);
 
     // Now to hash ourselves...
     char *h_buf = (char *)alloca(65);
@@ -554,7 +554,7 @@ int main(int argc, char *argv[]) {
     //// If we've stored a hash for our binary, compare it with the hash we calculated. Make sure they match. Pitch a fit if they don't.
     //if (conf.configKeyExists("binary-hash")) {
     //    if (strcasestr(h_buf, conf.getConfigStringByKey("binary-hash")) == NULL) {
-    //      c3p_log(LOG_ERR, __PRETTY_FUNCTION__, "Calculated hash value does not match what was stored in your config. Exiting...");
+    //      c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Calculated hash value does not match what was stored in your config. Exiting...");
     //      exit(1);
     //    }
     //}
