@@ -780,6 +780,12 @@ int8_t MainGuiWindow::closeWindow() {
 }
 
 
+
+int8_t MainGuiWindow::render_overlay() {
+  return 0;
+}
+
+
 /*
 * Called to unconditionally show the elements in the GUI.
 */

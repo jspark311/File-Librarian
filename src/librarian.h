@@ -60,6 +60,7 @@ class MainGuiWindow : public C3Px11Window {
     int8_t createWindow();
     int8_t closeWindow();
     int8_t render(bool force);
+    int8_t render_overlay();
 };
 
 
