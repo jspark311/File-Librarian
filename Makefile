@@ -1,20 +1,37 @@
-# Makefile for librarian.
+################################################################################
+# Makefile for librarian
 # Author: J. Ian Lindsay
+#
+################################################################################
 
 CC		= g++
-CXXFLAGS = -I./src -I./lib/CppPotpourri/src -I./lib/Platform -Wl,--gc-sections -Wall
-LIBS	= -L$(OUTPUT_PATH) -L$(BUILD_ROOT)/lib -lstdc++ -lcrypto -lm $(shell mysql_config --libs)
+CXXFLAGS = -I./src -I./lib/CppPotpourri/src -I./lib/Platform -Wl,--gc-sections -fsingle-precision-constant -fno-rtti -fno-exceptions -Wall
+
+# Libraries to link against.
+LIBS	= -L$(OUTPUT_PATH) -L$(BUILD_ROOT)/lib -lstdc++ -lX11 -lcrypto -lm $(shell mysql_config --libs)
 
 export BUILD_ROOT    = $(shell pwd)
 export OUTPUT_PATH   = $(BUILD_ROOT)/build/
 
+###########################################################################
+# Source files, includes, and linker directives...
+###########################################################################
+
 SRCS    = src/librarian.cpp src/MySQLConnector/*.cpp
+SRCS   += src/ConfigManager/*.cpp src/MySQLConnector/DBAbstractions/*.cpp
 SRCS   += lib/CppPotpourri/src/*.cpp
+SRCS   += lib/CppPotpourri/src/Image/*.cpp
+SRCS   += lib/CppPotpourri/src/Image/ImageUtils/*.cpp
+SRCS   += lib/CppPotpourri/src/Image/GfxUI/*.cpp
 SRCS   += lib/CppPotpourri/src/Identity/*.cpp
+SRCS   += lib/CppPotpourri/src/CryptoBurrito/*.cpp
+SRCS   += lib/CppPotpourri/src/CryptoBurrito/Providers/*.cpp
 SRCS   += lib/CppPotpourri/src/cbor-cpp/*.cpp
 SRCS   += lib/Platform/src/Linux.cpp
 SRCS   += lib/Platform/src/LinuxStdIO.cpp
-SRCS   += src/ConfigManager/*.cpp src/MySQLConnector/DBAbstractions/*.cpp
+SRCS   += lib/Platform/src/GUI/X11/*.cpp
+
+
 
 default:	librarian
 

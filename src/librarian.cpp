@@ -1,11 +1,5 @@
 /*
 * Author:    J. Ian Lindsay
-*
-*
-*
-* VERSION HISTORY:
-* ========================================================================================================================
-* 0.0.1:      First operational version. Must take operating args from command line.
 */
 
 #include <stdint.h>
@@ -29,43 +23,84 @@
 #include <termios.h>
 #include <netdb.h>
 
-#include <uuid/uuid.h>
+//#include <uuid/uuid.h>
 #include <mysql/mysql.h>
 #include <openssl/evp.h>
 
 #include "MySQLConnector/DBAbstractions/ORM.h"
 #include "ConfigManager/ConfigManager.h"
 
-#include "LightLinkedList.h"
-#include "PriorityQueue.h"
-#include "StringBuilder.h"
-#include "CppPotpourri.h"
-#include "ParsingConsole.h"
-#include "Identity/Identity.h"
+#include "librarian.h"
 
-#include <Linux.h>
 
-#define FP_VERSION         "0.0.4"    // Program version.
-#define U_INPUT_BUFF_SIZE     8192    // The maximum size of user input.
+#define U_INPUT_BUFF_SIZE    8192   // The maximum size of user input.
+#define CONSOLE_INPUT_HEIGHT  200
+#define TEST_FILTER_DEPTH     310
+#define ELEMENT_MARGIN          5
 
+
+/*******************************************************************************
+* Globals
+*******************************************************************************/
 using namespace std;
 
-const int INTERRUPT_PERIOD = 1;        // How many seconds between SIGALRM interrupts?
-
-int continue_running  = 1;
-int parent_pid          = 0;            // The PID of the root process (always).
-int pd_pid;                             // This is the PID for the worker thread.
+const char*    program_name;
+int            max_field_print   = 65;    // The maximum number of bytes we will print for sessions. Has no bearing on file output.
+int            parent_pid        = 0;     // The PID of the root process (always).
+int            pd_pid;                    // This is the PID for the worker thread.
+bool           continue_running  = true;
+MainGuiWindow* c3p_root_window   = nullptr;
 
 LibrarianDB db;
 ConfigManager conf;
 ORMDatahiveVersion* root_catalog = nullptr;
 
-char* program_name;
-int maximum_field_print = 65;         // The maximum number of bytes we will print for sessions. Has no bearing on file output.
-
 /* Console junk... */
 ParsingConsole console(U_INPUT_BUFF_SIZE);
 LinuxStdIO console_adapter;
+
+SensorFilter<uint32_t> test_filter_0(TEST_FILTER_DEPTH, FilteringStrategy::RAW);
+SensorFilter<float> test_filter_1(TEST_FILTER_DEPTH, FilteringStrategy::RAW);
+SensorFilter<float> test_filter_stdev(TEST_FILTER_DEPTH, FilteringStrategy::RAW);
+
+
+MouseButtonDef mouse_buttons[] = {
+  { .label = "Left",
+    .button_id = 1,
+    .gfx_event_down = GfxUIEvent::TOUCH,
+    .gfx_event_up   = GfxUIEvent::RELEASE
+  },
+  { .label = "Middle",
+    .button_id = 2,
+    .gfx_event_down = GfxUIEvent::DRAG,
+    .gfx_event_up   = GfxUIEvent::NONE
+  },
+  { .label = "Right",
+    .button_id = 3,
+    .gfx_event_down = GfxUIEvent::SELECT,
+    .gfx_event_up   = GfxUIEvent::NONE
+  },
+  { .label = "ScrlUp",
+    .button_id = 4,
+    .gfx_event_down = GfxUIEvent::MOVE_UP,
+    .gfx_event_up   = GfxUIEvent::NONE
+  },
+  { .label = "ScrlDwn",
+    .button_id = 5,
+    .gfx_event_down = GfxUIEvent::MOVE_DOWN,
+    .gfx_event_up   = GfxUIEvent::NONE
+  },
+  { .label = "TiltLeft",
+    .button_id = 6,
+    .gfx_event_down = GfxUIEvent::MOVE_LEFT,
+    .gfx_event_up   = GfxUIEvent::NONE
+  },
+  { .label = "TiltRight",
+    .button_id = 7,
+    .gfx_event_down = GfxUIEvent::MOVE_RIGHT,
+    .gfx_event_up   = GfxUIEvent::NONE
+  }
+};
 
 
 
@@ -306,7 +341,7 @@ void printUsage() {
 *******************************************************************************/
 
 int callback_help(StringBuilder* text_return, StringBuilder* args) {
-  text_return->concatf("%s %s\n", program_name, FP_VERSION);
+  text_return->concatf("%s %s\n", program_name, PROGRAM_VERSION);
   return console.console_handler_help(text_return, args);
 }
 
@@ -315,7 +350,12 @@ int callback_console_tools(StringBuilder* text_return, StringBuilder* args) {
 }
 
 int callback_program_quit(StringBuilder* text_return, StringBuilder* args) {
-  continue_running = 0;
+  continue_running = false;
+  text_return->concat("Stopping...\n");
+  if (c3p_root_window) {
+    c3p_root_window->closeWindow();
+  }
+  console.emitPrompt(false);  // Avoid a trailing prompt.
   return 0;
 }
 
@@ -336,14 +376,14 @@ int callback_unload(StringBuilder* text_return, StringBuilder* args) {
 
 int callback_max_print_width(StringBuilder* text_return, StringBuilder* args) {
   if (0 < args->count()) {
-    maximum_field_print = args->position_as_int(0);
-    if (maximum_field_print <= 0) {
+    max_field_print = args->position_as_int(0);
+    if (max_field_print <= 0) {
       text_return->concatf("You tried to set the output width as 0. This is a bad idea. Setting the value to 64 instead.\n");
-      maximum_field_print = 64;
+      max_field_print = 64;
     }
   }
   else {
-    text_return->concatf("max-width is presently set to %d.\n", maximum_field_print);
+    text_return->concatf("max-width is presently set to %d.\n", max_field_print);
   }
   return 0;
 }
@@ -383,88 +423,15 @@ int callback_set_notes(StringBuilder* text_return, StringBuilder* args) {
 }
 
 
-int callback_conf_tools(StringBuilder* text_return, StringBuilder* args) {
-  // char* cmd = args->position_trimmed(0);
-  // char* key = args->position_trimmed(1);
-  // char* val = args->position_trimmed(2);
-  // UserConf user_conf;
-  //
-  // text_return->concat("\n");
-  // if (0 == StringBuilder::strcasecmp(cmd, "val")) {
-  //   switch (args->count()) {
-  //     case 3:
-  //       text_return->concatf(
-  //         "Setting key %s to %s returns %d.\n",
-  //         key, val, user_conf.setConf((const char*) key, val)
-  //       );
-  //       break;
-  //     default:
-  //       user_conf.printConf(text_return, (1 < args->count()) ? key : nullptr);
-  //       break;
-  //   }
-  // }
-  // else if (0 == StringBuilder::strcasecmp(cmd, "pack")) {
-  //   // Tool for serializing conf into buffers. Should support CBOR and BINARY,
-  //   //   for interchange and local storage, respectively.
-  //   StringBuilder ser_out;
-  //   TCode fmt = TCode::BINARY;
-  //   int8_t ret = 0;
-  //   if (2 == args->count()) {
-  //     if (0 == StringBuilder::strcasecmp(key, "cbor")) {
-  //       fmt = TCode::CBOR;
-  //     }
-  //     else if (0 == StringBuilder::strcasecmp(key, "bin")) {
-  //       fmt = TCode::BINARY;
-  //     }
-  //     else {
-  //       ret = -1;
-  //     }
-  //     if (0 == ret) {
-  //       ret = user_conf.serialize(&ser_out, fmt);
-  //       if (0 != ret) {
-  //         text_return->concatf("Conf serializer returned %d.\n", ret);
-  //       }
-  //     }
-  //   }
-  //
-  //   if (0 < ser_out.length()) {
-  //     text_return->concatf("\n---< Conf >-------------------------------\n");
-  //     StringBuilder::printBuffer(text_return, ser_out.string(), ser_out.length(), "\t");
-  //   }
-  //   else {
-  //     text_return->concat("Usage: pack [cbor|bin]\n");
-  //   }
-  // }
-  // else if (0 == StringBuilder::strcasecmp(cmd, "save")) {
-  //   if (1 == args->count()) {
-  //     text_return->concatf("Saving %s returned %d.\n", key, user_conf.save(key));
-  //   }
-  //   else {
-  //     text_return->concat("Usage: save\n");
-  //   }
-  // }
-  // else if (0 == StringBuilder::strcasecmp(cmd, "load")) {
-  //   if (1 == args->count()) {
-  //     text_return->concatf("Loading %s returned %d.\n", key, user_conf.load(key));
-  //   }
-  //   else {
-  //     text_return->concat("Usage: load\n");
-  //   }
-  // }
-  // else {
-  //   text_return->concat("First argument must be the subcommand (val, pack, save, load).\n");
-  // }
-  return 0;
-}
-
 
 /****************************************************************************************************
 * Entry-point                                                                                       *
 ****************************************************************************************************/
 
+
 int main(int argc, char *argv[]) {
-  char *db_conf_filename  = NULL;     // Where should we look for our DB parameters?
   program_name            = argv[0];  // Our name.
+  char *db_conf_filename  = NULL;     // Where should we look for our DB parameters?
   StringBuilder output;
 
   platform.init();
@@ -482,8 +449,25 @@ int main(int argc, char *argv[]) {
       exit(0);
     }
     else if ((strcasestr(argv[i], "--version")) || (strcasestr(argv[i], "-v") == argv[i])) {
-      printf("%s v%s\n\n", argv[0], FP_VERSION);
+      printf("%s v%s\n\n", argv[0], PROGRAM_VERSION);
       exit(0);
+    }
+    else if (strcasestr(argv[i], "--gui")) {
+      // Instance an X11 window.
+      c3p_root_window = new MainGuiWindow(0, 0, 1024, 768, "Librarian");
+      if (c3p_root_window) {
+        int8_t local_ret = c3p_root_window->map_button_inputs(mouse_buttons, sizeof(mouse_buttons) / sizeof(mouse_buttons[0]));
+        c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Defining buttons returns %d.", local_ret);
+        if (0 == c3p_root_window->createWindow()) {
+          // The window thread is running.
+        }
+        else {
+          c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to instance the root GUI window.");
+        }
+      }
+      else {
+        c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to instance the root GUI window.");
+      }
     }
     else if (argc - i >= 2) {    // Compound arguments go in this case block...
       if ((strcasestr(argv[i], "--conf")) || (strcasestr(argv[i], "-c"))) {
@@ -560,32 +544,35 @@ int main(int argc, char *argv[]) {
     //}
     ///* INTERNAL INTEGRITY-CHECKS */
 
-  // Mutually connect the console class to STDIO.
-  console_adapter.readCallback(&console);
-  console.setOutputTarget(&console_adapter);
-
   // We want to have a nice prompt string...
   StringBuilder prompt_string;
-  prompt_string.concatf("%c[36m%s> %c[39m", 0x1B, argv[0], 0x1B);
+  //if (nullptr == c3p_root_window) {
+    // If there is no GUI, mutually connect the console class to STDIO.
+    console.localEcho(false);
+    console_adapter.readCallback(&console);
+    console.setOutputTarget(&console_adapter);
+    console.hasColor(true);
+    prompt_string.concatf("%c[36m%s> %c[39m", 0x1B, argv[0], 0x1B);
+  //}
+  //else {
+  //  prompt_string.concatf("%s> ", argv[0]);
+  //}
   console.setPromptString((const char*) prompt_string.string());
-
-  console.defineCommand("help",        '?',  ParsingConsole::tcodes_str_1, "Prints help to console.", "[<specific command>]", 0, callback_help);
-  console.defineCommand("console",     '\0', ParsingConsole::tcodes_str_3, "Console conf.", "[echo|prompt|force|rxterm|txterm]", 0, callback_console_tools);
-  console.defineCommand("pfinfo",      ParsingConsole::tcodes_str_1,  "Platform information", "[subgroup]", 0, callback_platform_info);
-  console.defineCommand("info",        'i', ParsingConsole::tcodes_str_1, "Print the catalog's vital stats.", "", 0, callback_catalog_info);
-  console.defineCommand("scan",        ParsingConsole::tcodes_str_1, "Read the filesystem to fill out the catalog.", "", 0, callback_start_scan);
-  console.defineCommand("unload",      ParsingConsole::tcodes_str_1, "Discard the current catalog.", "", 0, callback_unload);
-  console.defineCommand("max-print",   ParsingConsole::tcodes_str_1, "Sets the maximum print width.", "", 0, callback_max_print_width);
-  console.defineCommand("catalog",     ParsingConsole::tcodes_str_1, "Create a new catalog at the given path.", "", 1, callback_new_catalog);
-  console.defineCommand("tag",         ParsingConsole::tcodes_str_1, "Set a tag for the catalog.", "", 1, callback_set_tag);
-  console.defineCommand("notes",       ParsingConsole::tcodes_str_1, "Set the notes on the catalog.", "", 1, callback_set_notes);
-  console.defineCommand("conf",        'c', ParsingConsole::tcodes_str_3, "Dump/set conf key.", "[conf_key] [value]", 1, callback_conf_tools);
-  console.defineCommand("quit",        'Q', ParsingConsole::tcodes_0, "Commit sudoku.", "", 0, callback_program_quit);
+  console.emitPrompt(true);
   console.setTXTerminator(LineTerm::LF);
   console.setRXTerminator(LineTerm::LF);
-  console.localEcho(false);
-  console.emitPrompt(true);
-  console.hasColor(true);
+
+  console.defineCommand("help",        '?',  "Prints help to console.", "[<specific command>]", 0, callback_help);
+  console.defineCommand("console",     '\0', "Console conf.", "[echo|prompt|force|rxterm|txterm]", 0, callback_console_tools);
+  console.defineCommand("pfinfo",      '\0', "Platform information", "[subgroup]", 0, callback_platform_info);
+  console.defineCommand("info",        'i',  "Print the catalog's vital stats.", "", 0, callback_catalog_info);
+  console.defineCommand("scan",        '\0', "Read the filesystem to fill out the catalog.", "", 0, callback_start_scan);
+  console.defineCommand("unload",      '\0', "Discard the current catalog.", "", 0, callback_unload);
+  console.defineCommand("max-print",   '\0', "Sets the maximum print width.", "", 0, callback_max_print_width);
+  console.defineCommand("catalog",     '\0', "Create a new catalog at the given path.", "", 1, callback_new_catalog);
+  console.defineCommand("tag",         '\0', "Set a tag for the catalog.", "", 1, callback_set_tag);
+  console.defineCommand("notes",       '\0', "Set the notes on the catalog.", "", 1, callback_set_notes);
+  console.defineCommand("quit",        'Q',  "Commit sudoku.", "", 0, callback_program_quit);
   console.init();
 
   output.concatf("%s initialized.\n", argv[0]);
@@ -605,5 +592,319 @@ int main(int argc, char *argv[]) {
     root_catalog = nullptr;
   }
 
+  console.emitPrompt(false);  // Avoid a trailing prompt.
+  console_adapter.poll();
+
+  delete c3p_root_window;   // Will block until the GUI thread is shut down.
+
   platform.firmware_shutdown(0);
+  return 0;  // Should never execute.
+}
+
+
+
+
+/*******************************************************************************
+* UI definition
+*******************************************************************************/
+
+GfxUILayout test0(
+  0, 0, 0, 0,
+  0, 0, 0, 0,
+  0, 0, 0, 0
+);
+GfxUILayout test1(
+  0, 0, 0, 0,
+  0, 0, 0, 0,
+  0, 0, 0, 0
+);
+GfxUIGroup test2(
+  GfxUILayout{
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0
+  }, 0
+);
+
+
+GfxUIStyle base_style;
+
+//base_style.color_bg          = 0;
+//base_style.color_border      = 0xFFFFFF;
+//base_style.color_header      = 0x20B2AA;
+//base_style.color_active      = 0x20B2AA;
+//base_style.color_inactive    = 0xA0A0A0;
+//base_style.color_selected    = 0x202020;
+//base_style.color_unselected  = 0x202020;
+//base_style.text_size         = 2;
+
+
+// Graph the screen re-draw period.
+GfxUISensorFilter<uint32_t> sf_render_0(
+  &test_filter_0,
+  0, 50,
+  TEST_FILTER_DEPTH, 170,
+  0xC09020, (GFXUI_SENFILT_FLAG_SHOW_RANGE | GFXUI_SENFILT_FLAG_SHOW_VALUE)
+);
+// Graph the standard deviation of the screen re-draw period.
+GfxUISensorFilter<float> sf_render_1(
+  &test_filter_stdev,
+  sf_render_0.elementPosX(),
+  sf_render_0.elementPosY() + sf_render_0.elementHeight() + 1,
+  TEST_FILTER_DEPTH, 60,
+  0xC0B020, (GFXUI_SENFILT_FLAG_SHOW_RANGE | GFXUI_SENFILT_FLAG_SHOW_VALUE)
+);
+// Create a text window, into which we will write running filter stats.
+GfxUITextArea _filter_txt_0(
+  sf_render_1.elementPosX(),
+  sf_render_1.elementPosY() + sf_render_1.elementHeight() + 2,
+  sf_render_1.elementWidth(),
+  40, 0xC09020
+);
+
+GfxUITextButton _button_0(
+  "ST",
+  sf_render_0.elementPosX() + sf_render_0.elementWidth() + ELEMENT_MARGIN,
+  sf_render_0.elementPosY(),
+  22, 22, 0x9932CC
+);
+GfxUIButton _button_1(
+  _button_0.elementPosX() + _button_0.elementWidth() + ELEMENT_MARGIN,
+  _button_0.elementPosY(),
+  22, 22, 0x9932CC,
+  GFXUI_BUTTON_FLAG_MOMENTARY
+);
+
+GfxUITextButton _button_2(
+  "Rm",
+  _button_1.elementPosX() + _button_1.elementWidth() + ELEMENT_MARGIN,
+  _button_1.elementPosY(),
+  22, 22, 0xFF8C00
+);
+
+GfxUIButton _button_3(
+  _button_2.elementPosX() + _button_2.elementWidth() + ELEMENT_MARGIN,
+  _button_2.elementPosY(),
+  22, 22, 0xFF8C00,
+  GFXUI_BUTTON_FLAG_MOMENTARY
+);
+
+GfxUISlider _slider_0(
+  _button_0.elementPosX(),
+  _button_0.elementPosY() + _button_0.elementHeight() + ELEMENT_MARGIN,
+  (22*4) + (ELEMENT_MARGIN * 3),  20,
+  0x20B2AA, GFXUI_SLIDER_FLAG_RENDER_VALUE
+);
+
+GfxUISlider _slider_1(
+  _slider_0.elementPosX(),
+  _slider_0.elementPosY() + _slider_0.elementHeight() + ELEMENT_MARGIN,
+  (22*4) + (ELEMENT_MARGIN * 3),  20,
+  0xFFA07A, GFXUI_SLIDER_FLAG_RENDER_VALUE
+);
+
+GfxUISlider _slider_2(
+  _slider_1.elementPosX(),
+  _slider_1.elementPosY() + _slider_1.elementHeight() + ELEMENT_MARGIN,
+  (22*4) + (ELEMENT_MARGIN * 3),  20,
+  0xFFA07A, GFXUI_SLIDER_FLAG_RENDER_VALUE
+);
+
+GfxUISlider _slider_3(
+  _button_3.elementPosX() + _button_3.elementWidth() + ELEMENT_MARGIN,
+  _button_3.elementPosY(),
+  24,  100, 0x90F5EE, GFXUI_SLIDER_FLAG_RENDER_VALUE | GFXUI_SLIDER_FLAG_VERTICAL
+);
+
+GfxUISlider _slider_4(
+  _slider_3.elementPosX() + _slider_3.elementWidth() + ELEMENT_MARGIN,
+  _slider_3.elementPosY(),
+  24,  100, 0xDC143C, GFXUI_SLIDER_FLAG_RENDER_VALUE | GFXUI_SLIDER_FLAG_VERTICAL
+);
+
+// Create a simple console window, with a full frame.
+GfxUITextArea _txt_area_0(
+  _filter_txt_0.elementPosX(),
+  _filter_txt_0.elementPosY() + _filter_txt_0.elementHeight() + 2,
+  400, 145, 0x00FF00,
+  (GFXUI_FLAG_DRAW_FRAME_U)
+);
+
+
+
+
+/*******************************************************************************
+* TODO: Migrate to new source file, and promote to Linux Platform.
+*******************************************************************************/
+
+int8_t MainGuiWindow::createWindow() {
+  int8_t ret = _init_window();
+  if (0 == ret) {
+    _overlay.reallocate();
+    test_filter_0.init();
+    test_filter_1.init();
+    test_filter_stdev.init();
+
+    root.add_child(&_button_0);
+    root.add_child(&_button_1);
+    root.add_child(&_button_2);
+    root.add_child(&_button_3);
+
+    root.add_child(&_slider_0);
+    root.add_child(&_slider_1);
+    root.add_child(&_slider_2);
+    root.add_child(&_slider_3);
+    root.add_child(&_slider_4);
+    root.add_child(&sf_render_0);
+    root.add_child(&sf_render_1);
+    root.add_child(&_filter_txt_0);
+    root.add_child(&_txt_area_0);
+
+    console.setOutputTarget(&_txt_area_0);
+    console.hasColor(false);
+    console.localEcho(true);
+
+    _filter_txt_0.enableFrames(GFXUI_FLAG_DRAW_FRAME_U);
+
+    _slider_0.value(0.5);
+    _refresh_period.reset();
+  }
+  return ret;
+}
+
+
+
+int8_t MainGuiWindow::closeWindow() {
+  continue_running = false;
+  return _deinit_window();
+}
+
+
+/*
+* Called to unconditionally show the elements in the GUI.
+*/
+int8_t MainGuiWindow::render(bool force) {
+  int8_t ret = 0;
+  if (force) {
+    const uint  CONSOLE_INPUT_X_POS = 0;
+    const uint  CONSOLE_INPUT_Y_POS = (height() - CONSOLE_INPUT_HEIGHT) - 1;
+    _txt_area_0.reposition(CONSOLE_INPUT_X_POS, CONSOLE_INPUT_Y_POS);
+    _txt_area_0.resize(width(), CONSOLE_INPUT_HEIGHT);
+
+    _fb.setCursor(2, 0);
+    _fb.setTextColor(0xA0A0A0, 0);
+    _fb.setTextSize(1);
+    _fb.writeString("Build date " __DATE__ " " __TIME__);
+
+    StringBuilder txt_render;
+    struct utsname sname;
+    if (1 != uname(&sname)) {
+      txt_render.concatf("%s %s (%s)", sname.sysname, sname.release, sname.machine);
+      txt_render.concatf("\n%s", sname.version);
+      _fb.writeString(&txt_render);
+      txt_render.clear();
+    }
+    txt_render.concatf("Window: %dx%d", _fb.x(), _fb.y());
+    _fb.writeString(&txt_render);
+    txt_render.clear();
+  }
+  return ret;
+}
+
+
+
+// Called from the thread.
+int8_t MainGuiWindow::poll() {
+  int8_t ret = 0;
+  if (0 < XPending(_dpy)) {
+    Atom WM_DELETE_WINDOW = XInternAtom(_dpy, "WM_DELETE_WINDOW", False);
+    XEvent e;
+    XNextEvent(_dpy, &e);
+
+    switch (e.type) {
+      case Expose:
+        {
+          int8_t local_ret = _refit_window();
+          if (0 != local_ret) {
+            c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Window resize failed (%d).", local_ret);
+          }
+        }
+        break;
+
+      case ButtonPress:
+      case ButtonRelease:
+        {
+          int8_t ret = _proc_mouse_button(e.xbutton.button, e.xbutton.x, e.xbutton.y, (e.type == ButtonPress));
+          if (0 == ret) {
+            // Any unclaimed input can be handled in this block.
+          }
+        }
+        break;
+
+      case KeyPress:
+        {
+          char buf[128] = {0, };
+          KeySym keysym;
+          int ret_local = XLookupString(&e.xkey, buf, sizeof(buf), &keysym, nullptr);
+          if (keysym == XK_Escape) {
+            _keep_polling = false;
+          }
+          else if (keysym == XK_Return) {
+            StringBuilder _tmp_sbldr;
+            _tmp_sbldr.concat('\n');
+            console.provideBuffer(&_tmp_sbldr);
+          }
+          else if (1 == ret_local) {
+            StringBuilder _tmp_sbldr;
+            _tmp_sbldr.concat(buf[0]);
+            console.provideBuffer(&_tmp_sbldr);
+          }
+          else {
+            c3p_log(LOG_LEV_DEBUG, __PRETTY_FUNCTION__, "Key press: %s (%s)", buf, XKeysymToString(keysym));
+          }
+        }
+        break;
+
+
+      case ClientMessage:
+        if (static_cast<unsigned int>(e.xclient.data.l[0]) == WM_DELETE_WINDOW) {
+          _keep_polling = false;
+        }
+        break;
+
+      case MotionNotify:
+        _pointer_x = e.xmotion.x;
+        _pointer_y = e.xmotion.y;
+        break;
+
+      default:
+        c3p_log(LOG_LEV_DEBUG, __PRETTY_FUNCTION__, "Unhandled XEvent: %d", e.type);
+        break;
+    }
+  }
+
+  if (!_keep_polling) {
+    closeWindow();
+    ret = -1;
+  }
+  else {
+    // Render the UI elements...
+    // TODO: Should be in the relvant class.
+    if (test_filter_0.dirty()) {
+      StringBuilder _tmp_sbldr;
+      _tmp_sbldr.concatf("RMS:      %.2f\n", (double) test_filter_0.rms());
+      _tmp_sbldr.concatf("STDEV:    %.2f\n", (double) test_filter_0.stdev());
+      _tmp_sbldr.concatf("SNR:      %.2f\n", (double) test_filter_0.snr());
+      _tmp_sbldr.concatf("Min/Max:  %.2f / %.2f\n", (double) test_filter_0.minValue(), (double) test_filter_0.maxValue());
+      _filter_txt_0.clear();
+      _filter_txt_0.provideBuffer(&_tmp_sbldr);
+    }
+    if (1 == _redraw_window()) {
+      if (1 == test_filter_0.feedFilter(_redraw_timer.lastTime())) {
+        test_filter_stdev.feedFilter(test_filter_0.stdev());
+      }
+    }
+  }
+
+  return ret;
 }
