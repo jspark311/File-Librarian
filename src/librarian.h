@@ -25,12 +25,14 @@
 #include "C3POnX11.h"
 #include <Linux.h>
 
+#include "MySQLConnector/DBAbstractions/ORM.h"
+#include "ConfigManager/ConfigManager.h"
+
+
 #ifndef __C3P_LIBRARIAN_HEADER_H__
 #define __C3P_LIBRARIAN_HEADER_H__
 
-
 #define PROGRAM_VERSION    "0.1.0"
-
 
 class CryptoLogShunt : public CryptOpCallback {
   public:

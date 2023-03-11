@@ -27,9 +27,6 @@
 #include <mysql/mysql.h>
 #include <openssl/evp.h>
 
-#include "MySQLConnector/DBAbstractions/ORM.h"
-#include "ConfigManager/ConfigManager.h"
-
 #include "librarian.h"
 
 
@@ -608,52 +605,49 @@ int main(int argc, char *argv[]) {
 * UI definition
 *******************************************************************************/
 
-GfxUILayout test0(
-  0, 0, 0, 0,
-  0, 0, 0, 0,
-  0, 0, 0, 0
-);
-GfxUILayout test1(
-  0, 0, 0, 0,
-  0, 0, 0, 0,
-  0, 0, 0, 0
-);
-GfxUIGroup test2(
-  GfxUILayout{
-    0, 0, 0, 0,
-    0, 0, 0, 0,
-    0, 0, 0, 0
-  }, 0
-);
-
-
-GfxUIStyle base_style;
-
-//base_style.color_bg          = 0;
-//base_style.color_border      = 0xFFFFFF;
-//base_style.color_header      = 0x20B2AA;
-//base_style.color_active      = 0x20B2AA;
-//base_style.color_inactive    = 0xA0A0A0;
-//base_style.color_selected    = 0x202020;
-//base_style.color_unselected  = 0x202020;
-//base_style.text_size         = 2;
-
-
 // Graph the screen re-draw period.
 GfxUISensorFilter<uint32_t> sf_render_0(
+  GfxUILayout(
+    0, 50,                   // Position(x, y)
+    TEST_FILTER_DEPTH, 170,  // Size(w, h)
+    0, 0, 0, 0,              // Margins_px(t, b, l, r)
+    0, 0, 0, 0               // Border_px(t, b, l, r)
+  ),
+  GfxUIStyle(
+    0,          // bg
+    0xFFFFFF,   // border
+    0xFFFFFF,   // header
+    0xC09020,   // active
+    0xA0A0A0,   // inactive
+    0xFFFFFF,   // selected
+    0x202020,   // unselected
+    2           // t_size
+  ),
   &test_filter_0,
-  0, 50,
-  TEST_FILTER_DEPTH, 170,
-  0xC09020, (GFXUI_SENFILT_FLAG_SHOW_RANGE | GFXUI_SENFILT_FLAG_SHOW_VALUE)
+  (GFXUI_SENFILT_FLAG_SHOW_RANGE | GFXUI_SENFILT_FLAG_SHOW_VALUE)
 );
+
 // Graph the standard deviation of the screen re-draw period.
 GfxUISensorFilter<float> sf_render_1(
+  GfxUILayout(
+    sf_render_0.elementPosX(), (sf_render_0.elementPosY() + sf_render_0.elementHeight() + 1),
+    TEST_FILTER_DEPTH, 60,   // Size(w, h)
+    0, 0, 0, 0,              // Margins_px(t, b, l, r)
+    0, 0, 0, 0               // Border_px(t, b, l, r)
+  ),
+  GfxUIStyle(0, // bg
+    0xFFFFFF,   // border
+    0xFFFFFF,   // header
+    0xC0B020,   // active
+    0xA0A0A0,   // inactive
+    0xFFFFFF,   // selected
+    0x202020,   // unselected
+    2           // t_size
+  ),
   &test_filter_stdev,
-  sf_render_0.elementPosX(),
-  sf_render_0.elementPosY() + sf_render_0.elementHeight() + 1,
-  TEST_FILTER_DEPTH, 60,
-  0xC0B020, (GFXUI_SENFILT_FLAG_SHOW_RANGE | GFXUI_SENFILT_FLAG_SHOW_VALUE)
+  (GFXUI_SENFILT_FLAG_SHOW_RANGE | GFXUI_SENFILT_FLAG_SHOW_VALUE)
 );
+
 // Create a text window, into which we will write running filter stats.
 GfxUITextArea _filter_txt_0(
   sf_render_1.elementPosX(),
