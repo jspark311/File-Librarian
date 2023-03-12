@@ -600,7 +600,6 @@ int main(int argc, char *argv[]) {
 
 
 
-
 /*******************************************************************************
 * UI definition
 *******************************************************************************/
@@ -610,7 +609,7 @@ GfxUISensorFilter<uint32_t> sf_render_0(
   GfxUILayout(
     0, 50,                   // Position(x, y)
     TEST_FILTER_DEPTH, 170,  // Size(w, h)
-    0, 0, 0, 0,              // Margins_px(t, b, l, r)
+    ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN,  // Margins_px(t, b, l, r)
     0, 0, 0, 0               // Border_px(t, b, l, r)
   ),
   GfxUIStyle(
@@ -632,7 +631,7 @@ GfxUISensorFilter<float> sf_render_1(
   GfxUILayout(
     sf_render_0.elementPosX(), (sf_render_0.elementPosY() + sf_render_0.elementHeight() + 1),
     TEST_FILTER_DEPTH, 60,   // Size(w, h)
-    0, 0, 0, 0,              // Margins_px(t, b, l, r)
+    0, ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN,
     0, 0, 0, 0               // Border_px(t, b, l, r)
   ),
   GfxUIStyle(0, // bg
@@ -648,6 +647,7 @@ GfxUISensorFilter<float> sf_render_1(
   (GFXUI_SENFILT_FLAG_SHOW_RANGE | GFXUI_SENFILT_FLAG_SHOW_VALUE)
 );
 
+
 // Create a text window, into which we will write running filter stats.
 GfxUITextArea _filter_txt_0(
   sf_render_1.elementPosX(),
@@ -656,64 +656,177 @@ GfxUITextArea _filter_txt_0(
   40, 0xC09020
 );
 
+
 GfxUITextButton _button_0(
-  "ST",
-  sf_render_0.elementPosX() + sf_render_0.elementWidth() + ELEMENT_MARGIN,
-  sf_render_0.elementPosY(),
-  22, 22, 0x9932CC
+  GfxUILayout(
+    (sf_render_0.elementPosX() + sf_render_0.elementWidth() + 1), sf_render_0.elementPosY(),
+    30, 30,
+    0, ELEMENT_MARGIN, 0, ELEMENT_MARGIN,
+    0, 0, 0, 0               // Border_px(t, b, l, r)
+  ),
+  GfxUIStyle(0, // bg
+    0xFFFFFF,   // border
+    0xFFFFFF,   // header
+    0x9932CC,   // active
+    0xA0A0A0,   // inactive
+    0xFFFFFF,   // selected
+    0x202020,   // unselected
+    1           // t_size
+  ),
+  "ST"
 );
+
 GfxUIButton _button_1(
-  _button_0.elementPosX() + _button_0.elementWidth() + ELEMENT_MARGIN,
-  _button_0.elementPosY(),
-  22, 22, 0x9932CC,
-  GFXUI_BUTTON_FLAG_MOMENTARY
+  GfxUILayout(
+    (_button_0.elementPosX() + _button_0.elementWidth() + 1), _button_0.elementPosY(),
+    30, 30,
+    0, ELEMENT_MARGIN, 0, ELEMENT_MARGIN,
+    0, 0, 0, 0               // Border_px(t, b, l, r)
+  ),
+  GfxUIStyle(0, // bg
+    0xFFFFFF,   // border
+    0xFFFFFF,   // header
+    0x9932CC,   // active
+    0xA0A0A0,   // inactive
+    0xFFFFFF,   // selected
+    0x202020,   // unselected
+    1           // t_size
+  ),
+  (GFXUI_BUTTON_FLAG_MOMENTARY)
 );
 
 GfxUITextButton _button_2(
-  "Rm",
-  _button_1.elementPosX() + _button_1.elementWidth() + ELEMENT_MARGIN,
-  _button_1.elementPosY(),
-  22, 22, 0xFF8C00
+  GfxUILayout(
+    (_button_1.elementPosX() + _button_1.elementWidth() + 1), _button_1.elementPosY(),
+    30, 30,
+    0, ELEMENT_MARGIN, 0, ELEMENT_MARGIN,
+    0, 0, 0, 0               // Border_px(t, b, l, r)
+  ),
+  GfxUIStyle(0, // bg
+    0xFFFFFF,   // border
+    0xFFFFFF,   // header
+    0xFF8C00,   // active
+    0xA0A0A0,   // inactive
+    0xFFFFFF,   // selected
+    0x202020,   // unselected
+    1           // t_size
+  ),
+  "Rm"
 );
 
 GfxUIButton _button_3(
-  _button_2.elementPosX() + _button_2.elementWidth() + ELEMENT_MARGIN,
-  _button_2.elementPosY(),
-  22, 22, 0xFF8C00,
-  GFXUI_BUTTON_FLAG_MOMENTARY
+  GfxUILayout(
+    (_button_2.elementPosX() + _button_2.elementWidth() + 1), _button_2.elementPosY(),
+    30, 30,
+    0, ELEMENT_MARGIN, 0, ELEMENT_MARGIN,
+    0, 0, 0, 0               // Border_px(t, b, l, r)
+  ),
+  GfxUIStyle(0, // bg
+    0xFFFFFF,   // border
+    0xFFFFFF,   // header
+    0xFF8C00,   // active
+    0xA0A0A0,   // inactive
+    0xFFFFFF,   // selected
+    0x202020,   // unselected
+    1           // t_size
+  ),
+  (GFXUI_BUTTON_FLAG_MOMENTARY)
 );
 
+
 GfxUISlider _slider_0(
-  _button_0.elementPosX(),
-  _button_0.elementPosY() + _button_0.elementHeight() + ELEMENT_MARGIN,
-  (22*4) + (ELEMENT_MARGIN * 3),  20,
-  0x20B2AA, GFXUI_SLIDER_FLAG_RENDER_VALUE
+  GfxUILayout(
+    _button_0.elementPosX(), (_button_0.elementPosY() + _button_0.elementHeight() + 1),
+    ((_button_3.elementPosX() + _button_3.elementWidth()) - _button_0.elementPosX()), 20,
+    0, ELEMENT_MARGIN, 0, ELEMENT_MARGIN,
+    0, 0, 0, 0               // Border_px(t, b, l, r)
+  ),
+  GfxUIStyle(0, // bg
+    0xFFFFFF,   // border
+    0xFFFFFF,   // header
+    0x20B2AA,   // active
+    0xA0A0A0,   // inactive
+    0xFFFFFF,   // selected
+    0x202020,   // unselected
+    1           // t_size
+  ),
+  (GFXUI_SLIDER_FLAG_RENDER_VALUE)
 );
 
 GfxUISlider _slider_1(
-  _slider_0.elementPosX(),
-  _slider_0.elementPosY() + _slider_0.elementHeight() + ELEMENT_MARGIN,
-  (22*4) + (ELEMENT_MARGIN * 3),  20,
-  0xFFA07A, GFXUI_SLIDER_FLAG_RENDER_VALUE
+  GfxUILayout(
+    _slider_0.elementPosX(), (_slider_0.elementPosY() + _slider_0.elementHeight() + 1),
+    ((_button_3.elementPosX() + _button_3.elementWidth()) - _button_0.elementPosX()), 20,
+    0, ELEMENT_MARGIN, 0, ELEMENT_MARGIN,
+    0, 0, 0, 0               // Border_px(t, b, l, r)
+  ),
+  GfxUIStyle(0, // bg
+    0xFFFFFF,   // border
+    0xFFFFFF,   // header
+    0xFFA07A,   // active
+    0xA0A0A0,   // inactive
+    0xFFFFFF,   // selected
+    0x202020,   // unselected
+    1           // t_size
+  ),
+  (GFXUI_SLIDER_FLAG_RENDER_VALUE)
 );
 
 GfxUISlider _slider_2(
-  _slider_1.elementPosX(),
-  _slider_1.elementPosY() + _slider_1.elementHeight() + ELEMENT_MARGIN,
-  (22*4) + (ELEMENT_MARGIN * 3),  20,
-  0xFFA07A, GFXUI_SLIDER_FLAG_RENDER_VALUE
+  GfxUILayout(
+    _slider_1.elementPosX(), (_slider_1.elementPosY() + _slider_1.elementHeight() + 1),
+    ((_button_3.elementPosX() + _button_3.elementWidth()) - _button_0.elementPosX()), 20,
+    0, ELEMENT_MARGIN, 0, ELEMENT_MARGIN,
+    0, 0, 0, 0               // Border_px(t, b, l, r)
+  ),
+  GfxUIStyle(0, // bg
+    0xFFFFFF,   // border
+    0xFFFFFF,   // header
+    0xFFA07A,   // active
+    0xA0A0A0,   // inactive
+    0xFFFFFF,   // selected
+    0x202020,   // unselected
+    1           // t_size
+  ),
+  (GFXUI_SLIDER_FLAG_RENDER_VALUE)
 );
 
 GfxUISlider _slider_3(
-  _button_3.elementPosX() + _button_3.elementWidth() + ELEMENT_MARGIN,
-  _button_3.elementPosY(),
-  24,  100, 0x90F5EE, GFXUI_SLIDER_FLAG_RENDER_VALUE | GFXUI_SLIDER_FLAG_VERTICAL
+  GfxUILayout(
+    _button_3.elementPosX() + _button_3.elementWidth(), (_button_3.elementPosY() + 1),
+    24, ((_slider_2.elementPosY() + _slider_2.elementHeight()) - _button_0.elementPosY()),
+    0, ELEMENT_MARGIN, 0, ELEMENT_MARGIN,
+    0, 0, 0, 0               // Border_px(t, b, l, r)
+  ),
+  GfxUIStyle(0, // bg
+    0xFFFFFF,   // border
+    0xFFFFFF,   // header
+    0x90F5EE,   // active
+    0xA0A0A0,   // inactive
+    0xFFFFFF,   // selected
+    0x202020,   // unselected
+    1           // t_size
+  ),
+  (GFXUI_SLIDER_FLAG_RENDER_VALUE | GFXUI_SLIDER_FLAG_VERTICAL)
 );
 
 GfxUISlider _slider_4(
-  _slider_3.elementPosX() + _slider_3.elementWidth() + ELEMENT_MARGIN,
-  _slider_3.elementPosY(),
-  24,  100, 0xDC143C, GFXUI_SLIDER_FLAG_RENDER_VALUE | GFXUI_SLIDER_FLAG_VERTICAL
+  GfxUILayout(
+    (_slider_3.elementPosX() + _slider_3.elementWidth() + 1), (_slider_3.elementPosY() + 1),
+    24, ((_slider_2.elementPosY() + _slider_2.elementHeight()) - _button_0.elementPosY()),
+    0, ELEMENT_MARGIN, 0, ELEMENT_MARGIN,
+    0, 0, 0, 0               // Border_px(t, b, l, r)
+  ),
+  GfxUIStyle(0, // bg
+    0xFFFFFF,   // border
+    0xFFFFFF,   // header
+    0xDC143C,   // active
+    0xA0A0A0,   // inactive
+    0xFFFFFF,   // selected
+    0x202020,   // unselected
+    1           // t_size
+  ),
+  (GFXUI_SLIDER_FLAG_RENDER_VALUE | GFXUI_SLIDER_FLAG_VERTICAL)
 );
 
 // Create a simple console window, with a full frame.
@@ -723,6 +836,23 @@ GfxUITextArea _txt_area_0(
   400, 145, 0x00FF00,
   (GFXUI_FLAG_DRAW_FRAME_U)
 );
+
+
+
+void ui_value_change_callback(GfxUIElement* element) {
+  if (element == ((GfxUIElement*) &_slider_1)) {
+    c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "Slider-1 %.2f", _slider_1.value());
+  }
+  else if (element == ((GfxUIElement*) &_slider_2)) {
+    c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "Slider-2 %.2f", _slider_2.value());
+  }
+  else if (element == ((GfxUIElement*) &_slider_3)) {
+    c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "Slider-3 %.2f", _slider_3.value());
+  }
+  else {
+    c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "VALUE_CHANGE %p", element);
+  }
+}
 
 
 
@@ -762,6 +892,7 @@ int8_t MainGuiWindow::createWindow() {
 
     _slider_0.value(0.5);
     _refresh_period.reset();
+    setCallback(ui_value_change_callback);
   }
   return ret;
 }
@@ -816,7 +947,7 @@ int8_t MainGuiWindow::render(bool force) {
 // Called from the thread.
 int8_t MainGuiWindow::poll() {
   int8_t ret = 0;
-  if (0 < XPending(_dpy)) {
+  while (0 < XPending(_dpy)) {
     Atom WM_DELETE_WINDOW = XInternAtom(_dpy, "WM_DELETE_WINDOW", False);
     XEvent e;
     XNextEvent(_dpy, &e);
@@ -875,6 +1006,8 @@ int8_t MainGuiWindow::poll() {
       case MotionNotify:
         _pointer_x = e.xmotion.x;
         _pointer_y = e.xmotion.y;
+        //c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "_process_motion(%d, %d) returns %d.", _pointer_x, _pointer_y, _process_motion());
+        _process_motion();
         break;
 
       default:
