@@ -604,34 +604,40 @@ int main(int argc, char *argv[]) {
 * UI definition
 *******************************************************************************/
 
-// Graph the screen re-draw period.
-GfxUISensorFilter<uint32_t> sf_render_0(
+// Create a simple console window, with a full frame.
+GfxUITabbedContentPane _main_nav(
   GfxUILayout(
-    0, 50,                   // Position(x, y)
-    TEST_FILTER_DEPTH, 170,  // Size(w, h)
-    ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN,  // Margins_px(t, b, l, r)
+    0, 0,
+    1034, 768,
+    ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN,
     0, 0, 0, 0               // Border_px(t, b, l, r)
   ),
-  GfxUIStyle(
-    0,          // bg
+  GfxUIStyle(0, // bg
     0xFFFFFF,   // border
     0xFFFFFF,   // header
-    0xC09020,   // active
+    0xFFFFFF,   // active
     0xA0A0A0,   // inactive
     0xFFFFFF,   // selected
     0x202020,   // unselected
     2           // t_size
   ),
-  &test_filter_0,
-  (GFXUI_SENFILT_FLAG_SHOW_RANGE | GFXUI_SENFILT_FLAG_SHOW_VALUE)
+  0 //(GFXUI_FLAG_DRAW_FRAME_MASK)
 );
+
+
+GfxUIGroup _main_nav_catalogs(0, 0, 0, 0);
+GfxUIGroup _main_nav_deltas(0, 0, 0, 0);
+GfxUIGroup _main_nav_console(0, 0, 0, 0);
+GfxUIGroup _main_nav_settings(0, 0, 0, 0);
+
+
 
 // Graph the standard deviation of the screen re-draw period.
 GfxUISensorFilter<float> sf_render_1(
   GfxUILayout(
-    sf_render_0.elementPosX(), (sf_render_0.elementPosY() + sf_render_0.elementHeight() + 1),
-    TEST_FILTER_DEPTH, 60,   // Size(w, h)
-    0, ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN,
+    0, 0,
+    TEST_FILTER_DEPTH, 400,   // Size(w, h)
+    0, 0, 0, 0,
     0, 0, 0, 0               // Border_px(t, b, l, r)
   ),
   GfxUIStyle(0, // bg
@@ -650,17 +656,28 @@ GfxUISensorFilter<float> sf_render_1(
 
 // Create a text window, into which we will write running filter stats.
 GfxUITextArea _filter_txt_0(
-  sf_render_1.elementPosX(),
-  sf_render_1.elementPosY() + sf_render_1.elementHeight() + 2,
-  sf_render_1.elementWidth(),
-  40, 0xC09020
+  GfxUILayout(
+    sf_render_1.elementPosX(), (sf_render_1.elementPosY() + sf_render_1.elementHeight() + 1),
+    sf_render_1.elementWidth(), 100,
+    0, ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN,
+    0, 0, 0, 0               // Border_px(t, b, l, r)
+  ),
+  GfxUIStyle(0, // bg
+    0xFFFFFF,   // border
+    0xFFFFFF,   // header
+    0xC09020,   // active
+    0xA0A0A0,   // inactive
+    0xFFFFFF,   // selected
+    0x202020,   // unselected
+    2           // t_size
+  )
 );
+
 
 
 GfxUITextButton _button_0(
   GfxUILayout(
-    (sf_render_0.elementPosX() + sf_render_0.elementWidth() + 1), sf_render_0.elementPosY(),
-    30, 30,
+    0, 0, 30, 30,
     0, ELEMENT_MARGIN, 0, ELEMENT_MARGIN,
     0, 0, 0, 0               // Border_px(t, b, l, r)
   ),
@@ -829,14 +846,68 @@ GfxUISlider _slider_4(
   (GFXUI_SLIDER_FLAG_RENDER_VALUE | GFXUI_SLIDER_FLAG_VERTICAL)
 );
 
+
 // Create a simple console window, with a full frame.
 GfxUITextArea _txt_area_0(
-  _filter_txt_0.elementPosX(),
-  _filter_txt_0.elementPosY() + _filter_txt_0.elementHeight() + 2,
-  400, 145, 0x00FF00,
+  GfxUILayout(
+    0, 0,
+    400, 145,
+    ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN,
+    1, 0, 0, 0               // Border_px(t, b, l, r)
+  ),
+  GfxUIStyle(0, // bg
+    0xFFFFFF,   // border
+    0xFFFFFF,   // header
+    0x00FF00,   // active
+    0xA0A0A0,   // inactive
+    0xFFFFFF,   // selected
+    0x202020,   // unselected
+    2           // t_size
+  ),
   (GFXUI_FLAG_DRAW_FRAME_U)
 );
 
+
+
+// Create a text window, into which we will write running filter stats.
+GfxUITextArea _program_info_txt(
+  GfxUILayout(
+    (_slider_4.elementPosX() + _slider_4.elementWidth() + 1), (_slider_4.elementPosY() + 1),
+    500, 60,
+    0, 0, 0, 0,
+    0, 0, 0, 0               // Border_px(t, b, l, r)
+  ),
+  GfxUIStyle(0, // bg
+    0xFFFFFF,   // border
+    0xFFFFFF,   // header
+    0xC0C0C0,   // active
+    0xA0A0A0,   // inactive
+    0xFFFFFF,   // selected
+    0x202020,   // unselected
+    1           // t_size
+  )
+);
+
+
+GfxUITimeSeriesDetail<uint32_t> data_examiner(
+  GfxUILayout(
+    0, 0,                    // Position(x, y)
+    TEST_FILTER_DEPTH, 250,  // Size(w, h)
+    ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN,  // Margins_px(t, b, l, r)
+    0, 0, 0, 0               // Border_px(t, b, l, r)
+  ),
+  GfxUIStyle(
+    0,          // bg
+    0xFFFFFF,   // border
+    0xFFFFFF,   // header
+    0xC09020,   // active
+    0xA0A0A0,   // inactive
+    0xFFFFFF,   // selected
+    0x202020,   // unselected
+    2           // t_size
+  ),
+  &test_filter_0
+);
 
 
 void ui_value_change_callback(GfxUIElement* element) {
@@ -869,20 +940,37 @@ int8_t MainGuiWindow::createWindow() {
     test_filter_1.init();
     test_filter_stdev.init();
 
-    root.add_child(&_button_0);
-    root.add_child(&_button_1);
-    root.add_child(&_button_2);
-    root.add_child(&_button_3);
+    _main_nav_settings.add_child(&_button_0);
+    _main_nav_settings.add_child(&_button_1);
+    _main_nav_settings.add_child(&_button_2);
+    _main_nav_settings.add_child(&_button_3);
+    _main_nav_settings.add_child(&_slider_0);
+    _main_nav_settings.add_child(&_slider_1);
+    _main_nav_settings.add_child(&_slider_2);
+    _main_nav_settings.add_child(&_slider_3);
+    _main_nav_settings.add_child(&_slider_4);
+    _main_nav_settings.add_child(&_program_info_txt);
 
-    root.add_child(&_slider_0);
-    root.add_child(&_slider_1);
-    root.add_child(&_slider_2);
-    root.add_child(&_slider_3);
-    root.add_child(&_slider_4);
-    root.add_child(&sf_render_0);
-    root.add_child(&sf_render_1);
-    root.add_child(&_filter_txt_0);
-    root.add_child(&_txt_area_0);
+    _main_nav_catalogs.add_child(&data_examiner);
+
+    _main_nav_deltas.add_child(&sf_render_1);
+    _main_nav_deltas.add_child(&_filter_txt_0);
+
+    _main_nav_console.add_child(&_txt_area_0);
+
+    // Adding the contant panes will cause the proper screen co-ords to be imparted
+    //   to the group objects. We can then use them for element flow.
+    _main_nav.addTab("Catalogs", &_main_nav_catalogs, true);
+    _main_nav.addTab("Deltas", &_main_nav_deltas);
+    _main_nav.addTab("Console", &_main_nav_console);
+    _main_nav.addTab("Settings", &_main_nav_settings);
+
+    root.add_child(&_main_nav);
+
+    const uint  CONSOLE_INPUT_X_POS = _main_nav_console.elementPosX();
+    const uint  CONSOLE_INPUT_Y_POS = (height() - CONSOLE_INPUT_HEIGHT) - 1;
+    _txt_area_0.reposition(CONSOLE_INPUT_X_POS, CONSOLE_INPUT_Y_POS);
+    _txt_area_0.resize(width(), CONSOLE_INPUT_HEIGHT);
 
     console.setOutputTarget(&_txt_area_0);
     console.hasColor(false);
@@ -917,27 +1005,16 @@ int8_t MainGuiWindow::render_overlay() {
 int8_t MainGuiWindow::render(bool force) {
   int8_t ret = 0;
   if (force) {
-    const uint  CONSOLE_INPUT_X_POS = 0;
-    const uint  CONSOLE_INPUT_Y_POS = (height() - CONSOLE_INPUT_HEIGHT) - 1;
-    _txt_area_0.reposition(CONSOLE_INPUT_X_POS, CONSOLE_INPUT_Y_POS);
-    _txt_area_0.resize(width(), CONSOLE_INPUT_HEIGHT);
-
-    _fb.setCursor(2, 0);
-    _fb.setTextColor(0xA0A0A0, 0);
-    _fb.setTextSize(1);
-    _fb.writeString("Build date " __DATE__ " " __TIME__);
-
-    StringBuilder txt_render;
+    StringBuilder pitxt;
+    pitxt.concat("Build date " __DATE__ " " __TIME__);
     struct utsname sname;
     if (1 != uname(&sname)) {
-      txt_render.concatf("%s %s (%s)", sname.sysname, sname.release, sname.machine);
-      txt_render.concatf("\n%s", sname.version);
-      _fb.writeString(&txt_render);
-      txt_render.clear();
+      pitxt.concatf("%s %s (%s)", sname.sysname, sname.release, sname.machine);
+      pitxt.concatf("\n%s", sname.version);
     }
-    txt_render.concatf("Window: %dx%d", _fb.x(), _fb.y());
-    _fb.writeString(&txt_render);
-    txt_render.clear();
+    pitxt.concatf("Window: %dx%d", _fb.x(), _fb.y());
+    _program_info_txt.clear();
+    _program_info_txt.provideBuffer(&pitxt);
   }
   return ret;
 }

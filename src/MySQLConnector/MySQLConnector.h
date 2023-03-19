@@ -1,15 +1,19 @@
-#ifndef MYSQL_CONNECTOR_H
-#define MYSQL_CONNECTOR_H 1
-
 #include <mysql/mysql.h>
 #include "StringBuilder.h"
+#include "Image/GfxUI.h"
+
+#ifndef MYSQL_CONNECTOR_H
+#define MYSQL_CONNECTOR_H 1
 
 // This is the default path to the DB we are likely to use.
 #define   DEFAULT_CONF_FILE   "db.conf"
 
 typedef uint8_t LogLevel;
+class GfxUIMySQL;
 
 class MySQLConnector {
+  friend class GfxUIMySQL;
+
     public:
         MySQLConnector(void);
         ~MySQLConnector(void);
@@ -47,4 +51,20 @@ class MySQLConnector {
 
         char* str_n_dup(const char *s, size_t n);  // Makes a malloc'd copy of a binary string.
 };
-#endif
+
+
+class GfxUIMySQL : public GfxUIElement {
+  public:
+    GfxUIMySQL(const GfxUILayout lay, const GfxUIStyle sty, MySQLConnector* db_con, uint32_t f = 0) : GfxUIElement(lay, sty, f | GFXUI_FLAG_ALWAYS_REDRAW), _db_con(db_con) {};
+    ~GfxUIMySQL() {};
+
+    /* Implementation of GfxUIElement. */
+    virtual int  _render(UIGfxWrapper*);
+    virtual bool _notify(const GfxUIEvent, uint32_t x, uint32_t y, PriorityQueue<GfxUIElement*>*);
+
+  protected:
+    MySQLConnector* _db_con;
+};
+
+
+#endif    // MYSQL_CONNECTOR_H

@@ -53,6 +53,7 @@ class CryptoLogShunt : public CryptOpCallback {
 };
 
 
+
 class MainGuiWindow : public C3Px11Window {
   public:
     MainGuiWindow(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const char* TITLE) : C3Px11Window(x, y, w, h, TITLE) {};
@@ -63,6 +64,35 @@ class MainGuiWindow : public C3Px11Window {
     int8_t closeWindow();
     int8_t render(bool force);
     int8_t render_overlay();
+
+};
+
+
+class GfxUICatalog : public GfxUIElement {
+  public:
+    GfxUICatalog(const GfxUILayout lay, const GfxUIStyle sty, const char* T, uint32_t f = 0) : GfxUIElement(lay, sty, f), _TXT(T) {};
+    ~GfxUICatalog() {};
+
+    /* Implementation of GfxUIElement. */
+    virtual int  _render(UIGfxWrapper*);
+    virtual bool _notify(const GfxUIEvent, uint32_t x, uint32_t y, PriorityQueue<GfxUIElement*>*);
+
+  protected:
+    const char* _TXT;
+};
+
+
+class GfxUIFileTag : public GfxUIElement {
+  public:
+    GfxUIFileTag(const GfxUILayout lay, const GfxUIStyle sty, const char* T, uint32_t f = 0) : GfxUIElement(lay, sty, f), _TXT(T) {};
+    ~GfxUIFileTag() {};
+
+    /* Implementation of GfxUIElement. */
+    virtual int  _render(UIGfxWrapper*);
+    virtual bool _notify(const GfxUIEvent, uint32_t x, uint32_t y, PriorityQueue<GfxUIElement*>*);
+
+  protected:
+    const char* _TXT;
 };
 
 
