@@ -32,7 +32,7 @@
 
 #define U_INPUT_BUFF_SIZE    8192   // The maximum size of user input.
 #define CONSOLE_INPUT_HEIGHT  200
-#define TEST_FILTER_DEPTH     310
+#define TEST_FILTER_DEPTH     600
 #define ELEMENT_MARGIN          5
 
 
@@ -498,7 +498,7 @@ int main(int argc, char *argv[]) {
     db.print_db_conn_detail();          // Writes the connection data to the log.
     if (1 != db.dbConnected()) {
       c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to connect to database. Stopping...");
-      exit(1);
+      //exit(1);
     }
     //conf.loadConfigFromDb(&db);         // Load config from the DB.
   }
@@ -608,7 +608,7 @@ int main(int argc, char *argv[]) {
 GfxUITabbedContentPane _main_nav(
   GfxUILayout(
     0, 0,
-    1034, 768,
+    1024, 768,
     ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN,
     0, 0, 0, 0               // Border_px(t, b, l, r)
   ),
@@ -631,41 +631,18 @@ GfxUIGroup _main_nav_console(0, 0, 0, 0);
 GfxUIGroup _main_nav_settings(0, 0, 0, 0);
 
 
-
-// Graph the standard deviation of the screen re-draw period.
-GfxUISensorFilter<float> sf_render_1(
-  GfxUILayout(
-    0, 0,
-    TEST_FILTER_DEPTH, 400,   // Size(w, h)
-    0, 0, 0, 0,
-    0, 0, 0, 0               // Border_px(t, b, l, r)
-  ),
-  GfxUIStyle(0, // bg
-    0xFFFFFF,   // border
-    0xFFFFFF,   // header
-    0xC0B020,   // active
-    0xA0A0A0,   // inactive
-    0xFFFFFF,   // selected
-    0x202020,   // unselected
-    2           // t_size
-  ),
-  &test_filter_stdev,
-  (GFXUI_SENFILT_FLAG_SHOW_RANGE | GFXUI_SENFILT_FLAG_SHOW_VALUE)
-);
-
-
 // Create a text window, into which we will write running filter stats.
 GfxUITextArea _filter_txt_0(
   GfxUILayout(
-    sf_render_1.elementPosX(), (sf_render_1.elementPosY() + sf_render_1.elementHeight() + 1),
-    sf_render_1.elementWidth(), 100,
+    0, 0,
+    TEST_FILTER_DEPTH, 100,
     0, ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN,
     0, 0, 0, 0               // Border_px(t, b, l, r)
   ),
   GfxUIStyle(0, // bg
     0xFFFFFF,   // border
     0xFFFFFF,   // header
-    0xC09020,   // active
+    0xC09030,   // active
     0xA0A0A0,   // inactive
     0xFFFFFF,   // selected
     0x202020,   // unselected
@@ -708,8 +685,7 @@ GfxUIButton _button_1(
     0xFFFFFF,   // selected
     0x202020,   // unselected
     1           // t_size
-  ),
-  (GFXUI_BUTTON_FLAG_MOMENTARY)
+  )
 );
 
 GfxUITextButton _button_2(
@@ -728,7 +704,8 @@ GfxUITextButton _button_2(
     0x202020,   // unselected
     1           // t_size
   ),
-  "Rm"
+  "Rm",
+  (GFXUI_BUTTON_FLAG_MOMENTARY)
 );
 
 GfxUIButton _button_3(
@@ -892,7 +869,7 @@ GfxUITextArea _program_info_txt(
 GfxUITimeSeriesDetail<uint32_t> data_examiner(
   GfxUILayout(
     0, 0,                    // Position(x, y)
-    TEST_FILTER_DEPTH, 250,  // Size(w, h)
+    TEST_FILTER_DEPTH, 500,  // Size(w, h)
     ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN,  // Margins_px(t, b, l, r)
     0, 0, 0, 0               // Border_px(t, b, l, r)
   ),
@@ -900,7 +877,7 @@ GfxUITimeSeriesDetail<uint32_t> data_examiner(
     0,          // bg
     0xFFFFFF,   // border
     0xFFFFFF,   // header
-    0xC09020,   // active
+    0x40B0D0,   // active
     0xA0A0A0,   // inactive
     0xFFFFFF,   // selected
     0x202020,   // unselected
@@ -953,7 +930,6 @@ int8_t MainGuiWindow::createWindow() {
 
     _main_nav_catalogs.add_child(&data_examiner);
 
-    _main_nav_deltas.add_child(&sf_render_1);
     _main_nav_deltas.add_child(&_filter_txt_0);
 
     _main_nav_console.add_child(&_txt_area_0);
