@@ -5,13 +5,15 @@
 ################################################################################
 
 CC		= g++
-CXXFLAGS = -I./src -I./lib/CppPotpourri/src -I./lib/Platform -Wl,--gc-sections -fsingle-precision-constant -fno-rtti -fno-exceptions -Wall
+CXXFLAGS  = -I./src -I./lib/CppPotpourri/src -I./lib/Platform -Wl,--gc-sections -fsingle-precision-constant -fno-rtti -fno-exceptions -Wall
+#CXXFLAGS += -DCONFIG_C3P_OPENSSL
 
 # Libraries to link against.
 LIBS	= -L$(OUTPUT_PATH) -L$(BUILD_ROOT)/lib -lstdc++ -lX11 -lcrypto -lm $(shell mysql_config --libs)
 
 export BUILD_ROOT    = $(shell pwd)
 export OUTPUT_PATH   = $(BUILD_ROOT)/build/
+
 
 ###########################################################################
 # Source files, includes, and linker directives...

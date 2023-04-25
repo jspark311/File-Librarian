@@ -631,26 +631,6 @@ GfxUIGroup _main_nav_console(0, 0, 0, 0);
 GfxUIGroup _main_nav_settings(0, 0, 0, 0);
 
 
-// Create a text window, into which we will write running filter stats.
-GfxUITextArea _filter_txt_0(
-  GfxUILayout(
-    0, 0,
-    TEST_FILTER_DEPTH, 100,
-    0, ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN,
-    0, 0, 0, 0               // Border_px(t, b, l, r)
-  ),
-  GfxUIStyle(0, // bg
-    0xFFFFFF,   // border
-    0xFFFFFF,   // header
-    0xC09030,   // active
-    0xA0A0A0,   // inactive
-    0xFFFFFF,   // selected
-    0x202020,   // unselected
-    2           // t_size
-  )
-);
-
-
 
 GfxUITextButton _button_0(
   GfxUILayout(
@@ -887,6 +867,27 @@ GfxUITimeSeriesDetail<uint32_t> data_examiner(
 );
 
 
+// Create a text window, into which we will write running filter stats.
+GfxUITextArea _filter_txt_0(
+  GfxUILayout(
+    data_examiner.elementPosX(), (data_examiner.elementPosY() + data_examiner.elementHeight()),
+    data_examiner.elementWidth(), 120,
+    0, ELEMENT_MARGIN, ELEMENT_MARGIN, ELEMENT_MARGIN,
+    0, 0, 0, 0               // Border_px(t, b, l, r)
+  ),
+  GfxUIStyle(0, // bg
+    0xFFFFFF,   // border
+    0xFFFFFF,   // header
+    0xC09030,   // active
+    0xA0A0A0,   // inactive
+    0xFFFFFF,   // selected
+    0x202020,   // unselected
+    2           // t_size
+  )
+);
+
+
+
 void ui_value_change_callback(GfxUIElement* element) {
   if (element == ((GfxUIElement*) &_slider_1)) {
     c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "Slider-1 %.2f", _slider_1.value());
@@ -929,8 +930,7 @@ int8_t MainGuiWindow::createWindow() {
     _main_nav_settings.add_child(&_program_info_txt);
 
     _main_nav_catalogs.add_child(&data_examiner);
-
-    _main_nav_deltas.add_child(&_filter_txt_0);
+    _main_nav_catalogs.add_child(&_filter_txt_0);
 
     _main_nav_console.add_child(&_txt_area_0);
 
@@ -1059,7 +1059,6 @@ int8_t MainGuiWindow::poll() {
       case MotionNotify:
         _pointer_x = e.xmotion.x;
         _pointer_y = e.xmotion.y;
-        //c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "_process_motion(%d, %d) returns %d.", _pointer_x, _pointer_y, _process_motion());
         _process_motion();
         break;
 
