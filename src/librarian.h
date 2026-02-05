@@ -9,19 +9,19 @@
 #include "StringBuilder.h"
 #include "LightLinkedList.h"
 #include "PriorityQueue.h"
-#include "ParsingConsole.h"
+#include <Console/C3PConsole.h>
 #include "ElementPool.h"
-#include "KeyValuePair.h"
-#include "SensorFilter.h"
+#include "C3PValue/KeyValuePair.h"
+#include "TimeSeries/SensorFilter.h"
 #include "Vector3.h"
-#include "StopWatch.h"
+#include "TimerTools/TimerTools.h"
 #include "uuid.h"
 #include "cbor-cpp/cbor.h"
 #include "Image/Image.h"
 #include "Image/ImageUtils.h"
 #include "Image/GfxUI.h"
 #include "Identity/Identity.h"
-#include "CryptoBurrito/CryptoBurrito.h"
+//#include "CryptoBurrito/CryptoBurrito.h"
 #include "C3POnX11.h"
 #include <Linux.h>
 
@@ -34,23 +34,23 @@
 
 #define PROGRAM_VERSION    "0.1.0"
 
-class CryptoLogShunt : public CryptOpCallback {
-  public:
-    CryptoLogShunt() {};
-    ~CryptoLogShunt() {};
+// class CryptoLogShunt : public CryptOpCallback {
+//   public:
+//     CryptoLogShunt() {};
+//     ~CryptoLogShunt() {};
 
-    /* Mandatory overrides from the CryptOpCallback interface... */
-    int8_t op_callahead(CryptOp* op) {
-      return JOB_Q_CALLBACK_NOMINAL;
-    };
+//     /* Mandatory overrides from the CryptOpCallback interface... */
+//     int8_t op_callahead(CryptOp* op) {
+//       return JOB_Q_CALLBACK_NOMINAL;
+//     };
 
-    int8_t op_callback(CryptOp* op) {
-      StringBuilder output;
-      op->printOp(&output);
-      c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, &output);
-      return JOB_Q_CALLBACK_NOMINAL;
-    };
-};
+//     int8_t op_callback(CryptOp* op) {
+//       StringBuilder output;
+//       op->printOp(&output);
+//       c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, &output);
+//       return JOB_Q_CALLBACK_NOMINAL;
+//     };
+// };
 
 
 

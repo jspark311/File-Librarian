@@ -25,7 +25,6 @@
 
 //#include <uuid/uuid.h>
 #include <mysql/mysql.h>
-#include <openssl/evp.h>
 
 #include "librarian.h"
 
@@ -132,59 +131,21 @@ char* printBinStringToBuffer(unsigned char *str, int len, char *buffer) {
 
 
 /*
-* Perform a SHA256 digest.
-* It is the responsibility of the caller to ensure that the return buffer has enough space allocated
-*   to receive the digest.
-* Returns 1 on success and 0 on failure.
-*/
-int PROC_SHA256_MSG(unsigned char *msg, long msg_len, unsigned char *md, unsigned int md_len) {
-  int return_value    = 0;
-  const EVP_MD *evp_md  = EVP_sha256();
-  memset(md, 0, md_len);
-
-  if (evp_md != NULL) {
-    EVP_MD_CTX *cntxt = (EVP_MD_CTX *)(intptr_t) EVP_MD_CTX_create();
-    EVP_DigestInit(cntxt, evp_md);
-    if (msg_len > 0) EVP_DigestUpdate(cntxt, msg, msg_len);
-    EVP_DigestFinal_ex(cntxt, md, &md_len);
-    EVP_MD_CTX_destroy(cntxt);
-    return_value  = 1;
-  }
-  else {
-    c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to load the digest algo SHA256.");
-  }
-  return return_value;
-}
-
-
-/*
 * Function takes a path and a buffer as arguments. The binary is hashed and the ASCII representation is
 *   placed in the buffer. The number of bytes read is returned on success. 0 is returned on failure.
 */
-long hashFileByPath(char *path, char *h_buf) {
-  long return_value    = 0;
-  ifstream self_file(path, ios::in | ios::binary | ios::ate);
-  if (self_file) {
-    long self_size = self_file.tellg();
+extern long hashFileByPath(char* path, uint8_t*);
 
-    char *self_mass   = (char *) alloca(self_size);
-    int digest_size = 32;
-    unsigned char *self_digest = (unsigned char *) alloca(digest_size);
-    memset(self_digest, 0x00, digest_size);
-    memset(self_mass, 0x00, self_size);
-    self_file.seekg(0);   // After checking the file size, make sure to reset the read pointer...
-    self_file.read(self_mass, self_size);
-    c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "%s is %d bytes.", path, self_size);
-
-    if (PROC_SHA256_MSG((unsigned char *) self_mass, self_size, self_digest, digest_size)) {
-      memset(h_buf, 0x00, 65);
-      printBinStringToBuffer(self_digest, 32, h_buf);
-      c3p_log(LOG_LEV_INFO, __PRETTY_FUNCTION__, "This binary's SHA256 fingerprint is %s.", h_buf);
-      return_value = self_size;
-    }
-    else {
-      c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to run the hash on the input path.");
-    }
+long hashFileByPath(char* path, char* h_buf) {
+  const int digest_size = 32;
+  uint8_t self_digest[digest_size];
+  long return_value    = hashFileByPath(path, self_digest);
+  if (0 <= return_value) {
+    memset(h_buf, 0x00, 65);
+    printBinStringToBuffer(self_digest, 32, h_buf);
+  }
+  else {
+    c3p_log(LOG_LEV_ERROR, __PRETTY_FUNCTION__, "Failed to run the hash on the input path. %ld", return_value);
   }
   return return_value;
 }
@@ -547,7 +508,7 @@ int main(int argc, char *argv[]) {
     // If there is no GUI, mutually connect the console class to STDIO.
     console.localEcho(false);
     console_adapter.readCallback(&console);
-    console.setOutputTarget(&console_adapter);
+    console.setEfferant(&console_adapter);
     console.hasColor(true);
     prompt_string.concatf("%c[36m%s> %c[39m", 0x1B, argv[0], 0x1B);
   //}
@@ -556,7 +517,7 @@ int main(int argc, char *argv[]) {
   //}
   console.setPromptString((const char*) prompt_string.string());
   console.emitPrompt(true);
-  console.setTXTerminator(LineTerm::LF);
+  //console.setTXTerminator(LineTerm::LF);
   console.setRXTerminator(LineTerm::LF);
 
   console.defineCommand("help",        '?',  "Prints help to console.", "[<specific command>]", 0, callback_help);
@@ -846,7 +807,8 @@ GfxUITextArea _program_info_txt(
 );
 
 
-GfxUITimeSeriesDetail<uint32_t> data_examiner(
+// GfxUITimeSeriesDetail<uint32_t> data_examiner(
+GfxUITextArea data_examiner(
   GfxUILayout(
     0, 0,                    // Position(x, y)
     TEST_FILTER_DEPTH, 500,  // Size(w, h)
@@ -862,8 +824,7 @@ GfxUITimeSeriesDetail<uint32_t> data_examiner(
     0xFFFFFF,   // selected
     0x202020,   // unselected
     2           // t_size
-  ),
-  &test_filter_0
+  ) //, &test_filter_0
 );
 
 
@@ -948,7 +909,7 @@ int8_t MainGuiWindow::createWindow() {
     _txt_area_0.reposition(CONSOLE_INPUT_X_POS, CONSOLE_INPUT_Y_POS);
     _txt_area_0.resize(width(), CONSOLE_INPUT_HEIGHT);
 
-    console.setOutputTarget(&_txt_area_0);
+    console.setEfferant(&_txt_area_0);
     console.hasColor(false);
     console.localEcho(true);
 
@@ -990,7 +951,7 @@ int8_t MainGuiWindow::render(bool force) {
     }
     pitxt.concatf("Window: %dx%d", _fb.x(), _fb.y());
     _program_info_txt.clear();
-    _program_info_txt.provideBuffer(&pitxt);
+    _program_info_txt.pushBuffer(&pitxt);
   }
   return ret;
 }
@@ -1036,12 +997,12 @@ int8_t MainGuiWindow::poll() {
           else if (keysym == XK_Return) {
             StringBuilder _tmp_sbldr;
             _tmp_sbldr.concat('\n');
-            console.provideBuffer(&_tmp_sbldr);
+            console.pushBuffer(&_tmp_sbldr);
           }
           else if (1 == ret_local) {
             StringBuilder _tmp_sbldr;
             _tmp_sbldr.concat(buf[0]);
-            console.provideBuffer(&_tmp_sbldr);
+            console.pushBuffer(&_tmp_sbldr);
           }
           else {
             c3p_log(LOG_LEV_DEBUG, __PRETTY_FUNCTION__, "Key press: %s (%s)", buf, XKeysymToString(keysym));
@@ -1082,7 +1043,7 @@ int8_t MainGuiWindow::poll() {
       _tmp_sbldr.concatf("SNR:      %.2f\n", (double) test_filter_0.snr());
       _tmp_sbldr.concatf("Min/Max:  %.2f / %.2f\n", (double) test_filter_0.minValue(), (double) test_filter_0.maxValue());
       _filter_txt_0.clear();
-      _filter_txt_0.provideBuffer(&_tmp_sbldr);
+      _filter_txt_0.pushBuffer(&_tmp_sbldr);
     }
     if (1 == _redraw_window()) {
       if (1 == test_filter_0.feedFilter(_redraw_timer.lastTime())) {
